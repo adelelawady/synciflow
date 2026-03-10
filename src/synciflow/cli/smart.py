@@ -8,6 +8,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from sqlmodel import delete, select
 
+from synciflow import __version__ as SYNCIFLOW_VERSION
 from synciflow.config import AppConfig
 from synciflow.core.library_manager import Library
 from synciflow.db.models import Playlist, PlaylistTrack, Track
@@ -17,12 +18,21 @@ console = Console()
 
 
 def _print_header() -> None:
-    console.print(
-        Panel(
-            "[bold cyan]synciflow smart CLI[/bold cyan]\n[dim]Use arrow keys? No, just number choices.[/dim]",
-            expand=False,
-        )
-    )
+
+    title_lines = [
+        "[bold cyan]",
+        "  ____                        _  __ _ _                 ",
+        " / ___| _   _ _ __   ___ ___ (_)/ _(_) | _____      __  ",
+        " \\___ \\| | | | '_ \\ / __/ _ \\| | |_| | |/ _ \\ \\ /\\ / /  ",
+        "  ___) | |_| | | | | (_| (_) | |  _| | | (_) \\ V  V /   ",
+        " |____/ \\__, |_| |_|\\___\\___/|_|_| |_|_|\\___/ \\_/\\_/    ",
+        "        |___/                                           ",
+    "[/bold cyan]",
+    "",
+    "[dim]offline SYNCIFLOW sync • CLI • API[/dim]",
+    f"[dim]author: AdelElawady • version: {SYNCIFLOW_VERSION}[/dim]",
+    ]
+    console.print(Panel("\n".join(title_lines), expand=False))
 
 
 def _select_main_action() -> str:
