@@ -73,3 +73,10 @@ Desktop.ini
 .env
 .env.*
 
+
+# Downloads
+downloads/
+
+# Storage
+storage_data/
+data/

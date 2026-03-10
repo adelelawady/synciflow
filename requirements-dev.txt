@@ -4,3 +4,4 @@ mutagen>=1.47.0
 ffmpeg-python>=0.2.0
 selenium>=4.0.0
 webdriver-manager>=4.0.0
+pytest>=8.0.0

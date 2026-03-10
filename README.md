@@ -44,3 +44,22 @@ python -m twine upload dist/*
 ```
 
 Remember to set the correct metadata in `pyproject.toml` (project name, description, URLs, author, etc.) before publishing.
+
+
+
+How to run
+CLI (after installing):
+
+synciflow track <spotify_track_url>
+synciflow playlist <spotify_playlist_url>
+synciflow sync <spotify_playlist_url>
+synciflow serve --host 127.0.0.1 --port 8000
+API
+
+Start: synciflow serve
+Endpoints:
+POST /track/load { "url": "..." }
+POST /playlist/load { "url": "..." }
+POST /playlist/sync { "url": "..." }
+GET /track/{track_id}
+GET /track/{track_id}/stream
