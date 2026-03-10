@@ -31,6 +31,7 @@ dependencies = [
   "ffmpeg-python>=0.2.0",
   "selenium>=4.0.0",
   "webdriver-manager>=4.0.0",
+  "rich>=13.0.0",
 ]
 
 [project.scripts]

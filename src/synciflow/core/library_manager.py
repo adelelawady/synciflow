@@ -37,7 +37,7 @@ class Library:
 
     def playlist_manager(self, session: Session) -> PlaylistManager:
         tm = self.track_manager(session)
-        return PlaylistManager(session=session, tracks=tm)
+        return PlaylistManager(session=session, tracks=tm, files=self.files)
 
     def sync_manager(self, session: Session) -> SyncManager:
         tm = self.track_manager(session)

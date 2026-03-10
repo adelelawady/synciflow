@@ -61,3 +61,42 @@ class TrackManager:
         self.session.refresh(existing)
         return existing
 
+    def load_local(self, track_id: str) -> Track:
+        """
+        Local-first load using an existing audio file on disk.
+
+        - If an mp3 exists for the given track_id, ensure a DB row exists (or repair it)
+          and return it.
+        - If no mp3 exists, raise a ValueError so callers can surface a clear error.
+        """
+        audio_path = self.files.audio_path(track_id)
+        if not audio_path.exists():
+            raise ValueError(f"Local audio file not found for track_id={track_id}")
+
+        track = self.session.exec(select(Track).where(Track.track_id == track_id)).first()
+        if track is None:
+            track = Track(
+                track_id=track_id,
+                spotify_url="",
+                track_title="",
+                artist_title="",
+                track_image_url="",
+                audio_path=str(audio_path),
+                downloaded_at=datetime.now(timezone.utc),
+            )
+            self.session.add(track)
+        else:
+            updated = False
+            if track.audio_path != str(audio_path):
+                track.audio_path = str(audio_path)
+                updated = True
+            if track.downloaded_at is None:
+                track.downloaded_at = datetime.now(timezone.utc)
+                updated = True
+            if updated:
+                self.session.add(track)
+
+        self.session.commit()
+        self.session.refresh(track)
+        return track
+
