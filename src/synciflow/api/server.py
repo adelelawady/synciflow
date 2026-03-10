@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
+import shutil
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -12,6 +14,7 @@ from synciflow.core.library_manager import Library
 from synciflow.db.database import get_session
 from synciflow.db.models import Playlist, PlaylistTrack, Track
 from synciflow.storage.zip_builder import build_playlist_zip
+from synciflow.services.tagging import ensure_cover_art
 
 
 class LoadRequest(BaseModel):
@@ -122,6 +125,28 @@ def create_app(library: Library | None = None) -> FastAPI:
         filename = f"{t.track_title or track_id}.mp3"
         return FileResponse(path=t.audio_path, media_type="audio/mpeg", filename=filename)
 
+    def _sanitize_filename(name: str, fallback: str) -> str:
+        """
+        Sanitize a filename component so it is safe across platforms.
+        """
+        name = name.strip() or fallback
+        # Replace invalid characters with a hyphen.
+        name = re.sub(r'[\\\\/:*?"<>|]', "-", name)
+        # Collapse repeated whitespace and dashes.
+        name = re.sub(r"\\s+", " ", name)
+        name = re.sub(r"-{2,}", "-", name)
+        # Limit length to a reasonable size.
+        return name[:120].strip()
+
+    def _track_display_name(track: Track) -> str:
+        parts: list[str] = []
+        if track.track_title:
+            parts.append(track.track_title)
+        if track.artist_title:
+            parts.append(track.artist_title)
+        base = " - ".join(parts) if parts else track.track_id
+        return _sanitize_filename(base, track.track_id)
+
     @app.get("/playlist/{playlist_id}/download.zip")
     def download_playlist_zip(playlist_id: str, session: Session = Depends(_session)):
         playlist = session.exec(select(Playlist).where(Playlist.playlist_id == playlist_id)).first()
@@ -135,13 +160,27 @@ def create_app(library: Library | None = None) -> FastAPI:
             .order_by(PlaylistTrack.position)
         ).all()
         track_files = []
+        tmp_root = library.files.storage.tmp_dir / "playlist-zips" / playlist_id
         for rel, track in rows:
             if not track.audio_path:
                 continue
-            audio_path = Path(track.audio_path)
-            if not audio_path.exists():
+            source_audio_path = Path(track.audio_path)
+            if not source_audio_path.exists():
                 continue
-            track_files.append((rel.position, track.track_id, audio_path))
+
+            display_name = _track_display_name(track)
+
+            # Work on a temp copy so we do not mutate the library file.
+            tmp_audio_dir = tmp_root / "tracks"
+            tmp_audio_dir.mkdir(parents=True, exist_ok=True)
+            tmp_audio_path = tmp_audio_dir / f"{track.track_id}.mp3"
+            try:
+                shutil.copyfile(source_audio_path, tmp_audio_path)
+            except OSError:
+                continue
+
+            tagged_path = ensure_cover_art(tmp_audio_path, track.track_image_url)
+            track_files.append((rel.position, track.track_id, display_name, tagged_path))
 
         if not track_files:
             raise HTTPException(status_code=404, detail="No audio files available for playlist")

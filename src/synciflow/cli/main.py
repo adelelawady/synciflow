@@ -160,7 +160,13 @@ def download_playlist_zip(playlist_id: str, out: Path):
             audio_path = Path(track.audio_path)
             if not audio_path.exists():
                 continue
-            track_files.append((rel.position, track.track_id, audio_path))
+            display_name_parts = []
+            if track.track_title:
+                display_name_parts.append(track.track_title)
+            if track.artist_title:
+                display_name_parts.append(track.artist_title)
+            display_name = " - ".join(display_name_parts) if display_name_parts else track.track_id
+            track_files.append((rel.position, track.track_id, display_name, audio_path))
 
         if not track_files:
             typer.echo("No audio files available for this playlist.", err=True)
