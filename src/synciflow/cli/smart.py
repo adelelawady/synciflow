@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from rich.console import Console
@@ -11,7 +12,11 @@ from sqlmodel import delete, select
 from synciflow import __version__ as SYNCIFLOW_VERSION
 from synciflow.config import AppConfig
 from synciflow.core.library_manager import Library
+from synciflow.core.utils import track_display_name
 from synciflow.db.models import Playlist, PlaylistTrack, Track
+from synciflow.services.tagging import ensure_cover_art
+from synciflow.storage.path_manager import ensure_parent_dir
+from synciflow.storage.zip_builder import build_playlist_zip
 
 
 console = Console()
@@ -44,8 +49,10 @@ def _select_main_action() -> str:
     console.print("  [cyan]4[/cyan] Load playlist by Spotify playlist ID")
     console.print("  [cyan]5[/cyan] List tracks")
     console.print("  [cyan]6[/cyan] List playlists")
-    console.print("  [cyan]7[/cyan] Quit")
-    return Prompt.ask("Choose an option", choices=["1", "2", "3", "4", "5", "6", "7"], default="7")
+    console.print("  [cyan]7[/cyan] Save track to file")
+    console.print("  [cyan]8[/cyan] Save playlist to ZIP")
+    console.print("  [cyan]9[/cyan] Quit")
+    return Prompt.ask("Choose an option", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9"], default="9")
 
 
 def _load_track_by_url(lib: Library) -> None:
@@ -153,7 +160,6 @@ def _list_tracks(lib: Library) -> None:
 
     if not Confirm.ask("Open a track details view?", default=False):
         return
-
     track_id = Prompt.ask("Track ID")
     _track_details_menu(lib, track_id)
 
@@ -177,14 +183,17 @@ def _track_details_menu(lib: Library, track_id: str) -> None:
             )
         )
         console.print("  [cyan]1[/cyan] Print file path")
-        console.print("  [cyan]2[/cyan] Delete audio file only")
-        console.print("  [cyan]3[/cyan] Delete track from DB")
-        console.print("  [cyan]4[/cyan] Back")
-        choice = Prompt.ask("Choose", choices=["1", "2", "3", "4"], default="4")
+        console.print("  [cyan]2[/cyan] Save track to file")
+        console.print("  [cyan]3[/cyan] Delete audio file only")
+        console.print("  [cyan]4[/cyan] Delete track from DB")
+        console.print("  [cyan]5[/cyan] Back")
+        choice = Prompt.ask("Choose", choices=["1", "2", "3", "4", "5"], default="5")
 
         if choice == "1":
             console.print(track.audio_path or "<no audio path>")
         elif choice == "2":
+            _do_save_track(lib, track)
+        elif choice == "3":
             if not track.audio_path:
                 console.print("[yellow]No audio path to delete.[/yellow]")
                 continue
@@ -199,7 +208,7 @@ def _track_details_menu(lib: Library, track_id: str) -> None:
                 console.print("[green]Audio file deleted.[/green]")
             except Exception as exc:
                 console.print(f"[red]Error deleting file:[/red] {exc}")
-        elif choice == "3":
+        elif choice == "4":
             if not Confirm.ask("Delete DB row for this track?", default=False):
                 continue
             with lib.session() as session:
@@ -213,6 +222,101 @@ def _track_details_menu(lib: Library, track_id: str) -> None:
             break
         else:
             break
+
+
+def _do_save_track(lib: Library, track: Track) -> None:
+    """Save a single track to a path (file or directory)."""
+    if not track.audio_path:
+        console.print("[yellow]Track has no audio file.[/yellow]")
+        return
+    src = Path(track.audio_path)
+    if not src.exists():
+        console.print("[yellow]Audio file is missing on disk.[/yellow]")
+        return
+    out = Prompt.ask("Output path (file or directory)")
+    out_path = Path(out).expanduser().resolve()
+    if out_path.is_dir():
+        dest = out_path / f"{track_display_name(track)}.mp3"
+    else:
+        dest = out_path
+    try:
+        ensure_parent_dir(dest)
+        shutil.copyfile(src, dest)
+        console.print(f"[green]Saved to {dest}[/green]")
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+
+
+def _save_track_flow(lib: Library) -> None:
+    """Prompt for track ID and path, then save the track."""
+    track_id = Prompt.ask("Track ID")
+    with lib.session() as session:
+        track = session.exec(select(Track).where(Track.track_id == track_id)).first()
+        if track is None:
+            console.print("[red]Track not found.[/red]")
+            return
+    _do_save_track(lib, track)
+
+
+def _build_playlist_zip_with_cover(lib: Library, playlist_id: str) -> Path | None:
+    """Build a ZIP for the playlist with display names and embedded cover art. Returns path to zip or None."""
+    with lib.session() as session:
+        rows = session.exec(
+            select(PlaylistTrack, Track)
+            .where(PlaylistTrack.playlist_id == playlist_id)
+            .where(PlaylistTrack.track_id == Track.track_id)
+            .order_by(PlaylistTrack.position)
+        ).all()
+
+    track_files = []
+    tmp_root = lib.files.storage.tmp_dir / "playlist-zips" / playlist_id
+    for rel, track in rows:
+        if not track.audio_path:
+            continue
+        source_audio_path = Path(track.audio_path)
+        if not source_audio_path.exists():
+            continue
+        tmp_audio_dir = tmp_root / "tracks"
+        tmp_audio_dir.mkdir(parents=True, exist_ok=True)
+        tmp_audio_path = tmp_audio_dir / f"{track.track_id}.mp3"
+        try:
+            shutil.copyfile(source_audio_path, tmp_audio_path)
+        except OSError:
+            continue
+        tagged_path = ensure_cover_art(tmp_audio_path, track.track_image_url)
+        display_name = track_display_name(track)
+        track_files.append((rel.position, track.track_id, display_name, tagged_path))
+
+    if not track_files:
+        return None
+    return build_playlist_zip(lib.files, playlist_id, track_files)
+
+
+def _save_playlist_flow(lib: Library) -> None:
+    """Prompt for playlist ID and path, then save the playlist as a ZIP."""
+    playlist_id = Prompt.ask("Playlist ID")
+    with lib.session() as session:
+        playlist = session.exec(select(Playlist).where(Playlist.playlist_id == playlist_id)).first()
+        if playlist is None:
+            console.print("[red]Playlist not found.[/red]")
+            return
+
+    zip_path = _build_playlist_zip_with_cover(lib, playlist_id)
+    if zip_path is None:
+        console.print("[yellow]No audio files available for this playlist.[/yellow]")
+        return
+    out = Prompt.ask("Output path (file or directory)")
+    out_path = Path(out).expanduser().resolve()
+    if out_path.is_dir():
+        dest = out_path / f"{playlist.title or playlist_id}.zip"
+    else:
+        dest = out_path
+    try:
+        ensure_parent_dir(dest)
+        shutil.copyfile(zip_path, dest)
+        console.print(f"[green]Saved playlist ZIP to {dest}[/green]")
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] {exc}")
 
 
 def _list_playlists(lib: Library) -> None:
@@ -264,19 +368,37 @@ def _playlist_details_menu(lib: Library, playlist_id: str) -> None:
     console.print(table)
 
     while True:
-        console.print("  [cyan]1[/cyan] Local-load/repair playlist from disk")
-        console.print("  [cyan]2[/cyan] Delete playlist from DB")
-        console.print("  [cyan]3[/cyan] Back")
-        choice = Prompt.ask("Choose", choices=["1", "2", "3"], default="3")
+        console.print("  [cyan]1[/cyan] Save playlist to ZIP")
+        console.print("  [cyan]2[/cyan] Local-load/repair playlist from disk")
+        console.print("  [cyan]3[/cyan] Delete playlist from DB")
+        console.print("  [cyan]4[/cyan] Back")
+        choice = Prompt.ask("Choose", choices=["1", "2", "3", "4"], default="4")
 
         if choice == "1":
+            zip_path = _build_playlist_zip_with_cover(lib, playlist_id)
+            if zip_path is None:
+                console.print("[yellow]No audio files available for this playlist.[/yellow]")
+                continue
+            out = Prompt.ask("Output path (file or directory)")
+            out_path = Path(out).expanduser().resolve()
+            if out_path.is_dir():
+                dest = out_path / f"{playlist.title or playlist_id}.zip"
+            else:
+                dest = out_path
+            try:
+                ensure_parent_dir(dest)
+                shutil.copyfile(zip_path, dest)
+                console.print(f"[green]Saved playlist ZIP to {dest}[/green]")
+            except Exception as exc:
+                console.print(f"[red]Error:[/red] {exc}")
+        elif choice == "2":
             from synciflow.core.playlist_manager import PlaylistManager  # local import
 
             with lib.session() as session:
                 pm: PlaylistManager = lib.playlist_manager(session)
                 pm.load_local(playlist_id)
                 console.print("[green]Playlist reloaded from local metadata and tracks.[/green]")
-        elif choice == "2":
+        elif choice == "3":
             if not Confirm.ask("Delete playlist DB row (relations only)?", default=False):
                 continue
             with lib.session() as session:
@@ -313,6 +435,10 @@ def run() -> None:
             _list_tracks(lib)
         elif choice == "6":
             _list_playlists(lib)
+        elif choice == "7":
+            _save_track_flow(lib)
+        elif choice == "8":
+            _save_playlist_flow(lib)
         else:
             console.print("[dim]Goodbye.[/dim]")
             break
