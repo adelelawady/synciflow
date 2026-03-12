@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Callable
 
 from sqlmodel import Session, delete, func, select
 
@@ -24,7 +25,11 @@ class SyncManager:
     session: Session
     tracks: TrackManager
 
-    def sync_playlist(self, spotify_playlist_url: str) -> SyncResult:
+    def sync_playlist(
+        self,
+        spotify_playlist_url: str,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> SyncResult:
         details = spotify_client.get_playlist_details(spotify_playlist_url)
         playlist_id = details.playlist_id or extract_spotify_id(spotify_playlist_url, "playlist")
         if not playlist_id:
@@ -68,9 +73,12 @@ class SyncManager:
         self.session.exec(delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist_id))
         self.session.commit()
 
+        total = len(desired_track_urls)
         for pos, track_url in enumerate(desired_track_urls):
             track = self.tracks.load_track(track_url)
             self.session.add(PlaylistTrack(playlist_id=playlist_id, track_id=track.track_id, position=pos))
+            if progress_callback is not None:
+                progress_callback(pos + 1, total, "Syncing tracks")
         self.session.commit()
 
         # Remove unreferenced tracks from disk + DB.
@@ -91,6 +99,9 @@ class SyncManager:
         playlist.last_synced_at = datetime.now(timezone.utc)
         self.session.add(playlist)
         self.session.commit()
+
+        if progress_callback is not None:
+            progress_callback(total, total, f"Done: added={len(to_add)}, removed={removed_count}, kept={kept}")
 
         return SyncResult(added=len(to_add), removed=removed_count, kept=kept)
 

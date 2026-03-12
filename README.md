@@ -60,6 +60,11 @@ Ideal for building a private, self‑hosted music collection that mirrors your S
     - List tracks/playlists
     - Stream or download MP3s and playlist ZIPs.
 
+- **Job tracking & notifications**  
+  - Long-running tasks (track/playlist load, sync) run in the background and are tracked in a SQLite `jobs` table.
+  - Real-time updates over a WebSocket (`/ws/notifications`) for progress and completion events.
+  - CLI commands show Rich progress bars for playlist download, track download, and sync.
+
 ---
 
 ## 🧠 How It Works
@@ -111,6 +116,12 @@ At a high level:
 
 - **API layer**: `api/server.py`  
   FastAPI app with endpoints for loading, listing, streaming, and exporting.
+
+- **Job tracking**: `core/job_manager.py`  
+  Creates and updates jobs (pending → running → completed/failed) in the `jobs` table. Used by the API to return a `job_id` immediately and run work in a background thread.
+
+- **Notification bus**: `core/notification_bus.py`  
+  Thread-safe event bus: sync code (e.g. background workers) publishes events via `publish_sync()`; a bridge task forwards them to async subscribers. WebSocket clients subscribe to receive real-time events (e.g. `PLAYLIST_PROGRESS`, `TRACK_DOWNLOAD_COMPLETED`, `ERROR`).
 
 ---
 
@@ -234,6 +245,8 @@ Once installed (and virtualenv activated), you should have a `synciflow` CLI ent
 
 ### CLI – Basic commands
 
+Track, playlist, and sync commands show **Rich progress bars** (e.g. “Downloading track…”, “Loading playlist…”, “Syncing playlist…”) while work runs.
+
 #### Load a single track from Spotify
 
 ```bash
@@ -333,13 +346,24 @@ Once running, the API will be available at `http://127.0.0.1:8000`.
 
 All endpoints are defined in `synciflow.api.server.create_app`.
 
-### Load & sync
+### Load & sync (background jobs)
+
+These endpoints create a job, return **202 Accepted** with `{ "job_id": "<uuid>" }`, and run the work in a background task. Use **GET /jobs/{job_id}** to poll status, or connect to **WebSocket /ws/notifications** for real-time progress.
 
 | Method | Path                    | Body example                    | Description                                       |
 | ------ | ----------------------- | --------------------------------| ------------------------------------------------- |
-| POST   | `/track/load`           | `{ "url": "<spotify_track>" }`  | Load a track by Spotify URL (download if needed). |
-| POST   | `/playlist/load`        | `{ "url": "<spotify_playlist>"}`| Load a playlist by Spotify URL, downloading tracks. |
-| POST   | `/playlist/sync`        | `{ "url": "<spotify_playlist>"}`| Sync a playlist to the latest Spotify track set.  |
+| POST   | `/track/load`           | `{ "url": "<spotify_track>" }`  | Load a track by Spotify URL (download if needed). Returns 202 + `job_id`. |
+| POST   | `/playlist/load`        | `{ "url": "<spotify_playlist>"}`| Load a playlist by Spotify URL, downloading tracks. Returns 202 + `job_id`. |
+| POST   | `/playlist/sync`        | `{ "url": "<spotify_playlist>"}`| Sync a playlist to the latest Spotify track set. Returns 202 + `job_id`. |
+
+### Jobs & notifications
+
+| Method   | Path                 | Description |
+| -------- | -------------------- | ----------- |
+| GET      | `/jobs/{job_id}`     | Get job status: `job_id`, `job_type`, `status`, `progress`, `message`, `created_at`, `updated_at`. |
+| WebSocket| `/ws/notifications`  | Real-time events: `TRACK_DOWNLOAD_STARTED`, `TRACK_DOWNLOAD_COMPLETED`, `PLAYLIST_PROGRESS`, `PLAYLIST_COMPLETED`, `SYNC_PROGRESS`, `SYNC_COMPLETED`, `ERROR`. Each message is JSON with `event_type`, `job_id`, `progress`, `message`, and optional `payload`. |
+
+**Flow:** A POST to `/track/load`, `/playlist/load`, or `/playlist/sync` creates a row in the `jobs` table (status `pending`), returns 202 with `job_id`, and starts a background thread. The thread updates the job (`running` → `completed` or `failed`) and publishes events to the notification bus. Clients can poll `GET /jobs/{job_id}` or subscribe to `ws://host/ws/notifications` to receive progress and completion events.
 
 ### Local-first load
 
@@ -391,10 +415,12 @@ synciflow/
 │     │  ├─ library_manager.py       # Library: ties DB + storage + managers
 │     │  ├─ track_manager.py         # Track loading/downloading logic
 │     │  ├─ playlist_manager.py      # Playlist loading, metadata, relations
-│     │  └─ sync_manager.py          # Playlist sync against Spotify
+│     │  ├─ sync_manager.py          # Playlist sync against Spotify
+│     │  ├─ job_manager.py           # Job CRUD: create_job, update_job_progress, complete_job, fail_job, get_job
+│     │  └─ notification_bus.py     # Event bus: publish_sync, subscribe, bridge for WebSocket
 │     ├─ db/
 │     │  ├─ __init__.py
-│     │  ├─ models.py                # SQLModel tables: Track, Playlist, PlaylistTrack
+│     │  ├─ models.py                # SQLModel tables: Track, Playlist, PlaylistTrack, Job
 │     │  └─ database.py              # SQLite engine + session helpers
 │     ├─ storage/
 │     │  ├─ __init__.py

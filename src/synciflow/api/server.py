@@ -1,16 +1,36 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
 import re
 import shutil
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from synciflow.core.job_manager import (
+    complete_job,
+    create_job,
+    fail_job,
+    get_job,
+    update_job_progress,
+)
 from synciflow.core.library_manager import Library
+from synciflow.core.notification_bus import (
+    ERROR,
+    NotificationBus,
+    NotificationEvent,
+    PLAYLIST_COMPLETED,
+    PLAYLIST_PROGRESS,
+    SYNC_COMPLETED,
+    SYNC_PROGRESS,
+    TRACK_DOWNLOAD_COMPLETED,
+    TRACK_DOWNLOAD_STARTED,
+)
 from synciflow.db.database import get_session
 from synciflow.db.models import Playlist, PlaylistTrack, Track
 from synciflow.storage.zip_builder import build_playlist_zip
@@ -27,9 +47,154 @@ class AppState:
     library: Library
 
 
+def _run_track_load_job(
+    library: Library,
+    url: str,
+    job_id: str,
+    bus: NotificationBus,
+) -> None:
+    with Session(library.engine) as session:
+        try:
+            update_job_progress(session, job_id, 0.0, "Starting track download")
+            bus.publish_sync(
+                NotificationEvent(TRACK_DOWNLOAD_STARTED, job_id=job_id, message="Starting")
+            )
+
+            def track_progress(phase: str) -> None:
+                with Session(library.engine) as s2:
+                    if phase == "started":
+                        update_job_progress(s2, job_id, 0.0, "Downloading")
+                    else:
+                        update_job_progress(s2, job_id, 1.0, "Completed")
+
+            tm = library.track_manager(session)
+            track = tm.load_track(url, progress_callback=track_progress)
+
+            complete_job(session, job_id)
+            bus.publish_sync(
+                NotificationEvent(
+                    TRACK_DOWNLOAD_COMPLETED,
+                    job_id=job_id,
+                    progress=1.0,
+                    message=track.track_title or track.track_id,
+                    payload={"track_id": track.track_id},
+                )
+            )
+        except Exception as e:
+            fail_job(session, job_id, str(e))
+            bus.publish_sync(
+                NotificationEvent(ERROR, job_id=job_id, message=str(e))
+            )
+            raise
+
+
+def _run_playlist_load_job(
+    library: Library,
+    url: str,
+    job_id: str,
+    bus: NotificationBus,
+) -> None:
+    with Session(library.engine) as session:
+        try:
+            update_job_progress(session, job_id, 0.0, "Loading playlist")
+
+            def progress_cb(current: int, total: int, message: str) -> None:
+                with Session(library.engine) as s2:
+                    p = current / total if total else 0.0
+                    update_job_progress(s2, job_id, p, message)
+                bus.publish_sync(
+                    NotificationEvent(
+                        PLAYLIST_PROGRESS,
+                        job_id=job_id,
+                        progress=p,
+                        message=message,
+                        payload={"current": current, "total": total},
+                    )
+                )
+
+            pm = library.playlist_manager(session)
+            playlist = pm.load_playlist(url, progress_callback=progress_cb)
+
+            complete_job(session, job_id)
+            bus.publish_sync(
+                NotificationEvent(
+                    PLAYLIST_COMPLETED,
+                    job_id=job_id,
+                    progress=1.0,
+                    message=playlist.title or playlist.playlist_id,
+                    payload={"playlist_id": playlist.playlist_id},
+                )
+            )
+        except Exception as e:
+            fail_job(session, job_id, str(e))
+            bus.publish_sync(
+                NotificationEvent(ERROR, job_id=job_id, message=str(e))
+            )
+            raise
+
+
+def _run_sync_job(
+    library: Library,
+    url: str,
+    job_id: str,
+    bus: NotificationBus,
+) -> None:
+    with Session(library.engine) as session:
+        try:
+            update_job_progress(session, job_id, 0.0, "Starting sync")
+
+            def progress_cb(current: int, total: int, message: str) -> None:
+                with Session(library.engine) as s2:
+                    p = current / total if total else 0.0
+                    update_job_progress(s2, job_id, p, message)
+                bus.publish_sync(
+                    NotificationEvent(
+                        SYNC_PROGRESS,
+                        job_id=job_id,
+                        progress=p,
+                        message=message,
+                        payload={"current": current, "total": total},
+                    )
+                )
+
+            sm = library.sync_manager(session)
+            result = sm.sync_playlist(url, progress_callback=progress_cb)
+
+            complete_job(session, job_id)
+            bus.publish_sync(
+                NotificationEvent(
+                    SYNC_COMPLETED,
+                    job_id=job_id,
+                    progress=1.0,
+                    message=f"added={result.added} removed={result.removed} kept={result.kept}",
+                    payload={
+                        "added": result.added,
+                        "removed": result.removed,
+                        "kept": result.kept,
+                    },
+                )
+            )
+        except Exception as e:
+            fail_job(session, job_id, str(e))
+            bus.publish_sync(
+                NotificationEvent(ERROR, job_id=job_id, message=str(e))
+            )
+            raise
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    bus = NotificationBus()
+    loop = asyncio.get_running_loop()
+    bus.start_bridge(loop)
+    app.state.notification_bus = bus
+    yield
+    bus.stop_bridge()
+
+
 def create_app(library: Library | None = None) -> FastAPI:
     library = library or Library.create()
-    app = FastAPI(title="synciflow", version="0.0.1")
+    app = FastAPI(title="synciflow", version="0.0.1", lifespan=_lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -43,16 +208,51 @@ def create_app(library: Library | None = None) -> FastAPI:
         yield from get_session(library.engine)
 
     @app.post("/track/load")
-    def load_track(req: LoadRequest, session: Session = Depends(_session)):
-        tm = library.track_manager(session)
-        track = tm.load_track(req.url)
-        return track.model_dump()
+    async def load_track(req: LoadRequest, session: Session = Depends(_session)):
+        bus: NotificationBus = app.state.notification_bus
+        job = create_job(session, "track_load")
+        asyncio.create_task(
+            asyncio.to_thread(_run_track_load_job, library, req.url, job.job_id, bus)
+        )
+        return {"job_id": job.job_id}, 202
 
     @app.post("/playlist/load")
-    def load_playlist(req: LoadRequest, session: Session = Depends(_session)):
-        pm = library.playlist_manager(session)
-        playlist = pm.load_playlist(req.url)
-        return playlist.model_dump()
+    async def load_playlist(req: LoadRequest, session: Session = Depends(_session)):
+        bus: NotificationBus = app.state.notification_bus
+        job = create_job(session, "playlist_load")
+        asyncio.create_task(
+            asyncio.to_thread(_run_playlist_load_job, library, req.url, job.job_id, bus)
+        )
+        return {"job_id": job.job_id}, 202
+
+    @app.websocket("/ws/notifications")
+    async def ws_notifications(websocket: WebSocket):
+        await websocket.accept()
+        bus: NotificationBus = app.state.notification_bus
+        subscriber_queue = bus.subscribe()
+        try:
+            while True:
+                event = await subscriber_queue.get()
+                await websocket.send_json(event.to_dict())
+        except WebSocketDisconnect:
+            pass
+        finally:
+            bus.unsubscribe(subscriber_queue)
+
+    @app.get("/jobs/{job_id}")
+    def get_job_status(job_id: str, session: Session = Depends(_session)):
+        job = get_job(session, job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return {
+            "job_id": job.job_id,
+            "job_type": job.job_type,
+            "status": job.status,
+            "progress": job.progress,
+            "message": job.message,
+            "created_at": job.created_at.isoformat(),
+            "updated_at": job.updated_at.isoformat(),
+        }
 
     @app.post("/track/{track_id}/load_local")
     def load_track_local(track_id: str, session: Session = Depends(_session)):
@@ -67,10 +267,13 @@ def create_app(library: Library | None = None) -> FastAPI:
         return playlist.model_dump()
 
     @app.post("/playlist/sync")
-    def sync_playlist(req: LoadRequest, session: Session = Depends(_session)):
-        sm = library.sync_manager(session)
-        result = sm.sync_playlist(req.url)
-        return {"added": result.added, "removed": result.removed, "kept": result.kept}
+    async def sync_playlist(req: LoadRequest, session: Session = Depends(_session)):
+        bus: NotificationBus = app.state.notification_bus
+        job = create_job(session, "sync")
+        asyncio.create_task(
+            asyncio.to_thread(_run_sync_job, library, req.url, job.job_id, bus)
+        )
+        return {"job_id": job.job_id}, 202
 
     @app.get("/track/{track_id}")
     def get_track(track_id: str, session: Session = Depends(_session)):

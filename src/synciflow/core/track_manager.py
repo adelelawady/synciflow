@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Callable
 
 from sqlmodel import Session, select
 
@@ -20,7 +21,11 @@ class TrackManager:
     session: Session
     files: FileManager
 
-    def load_track(self, spotify_url: str) -> Track:
+    def load_track(
+        self,
+        spotify_url: str,
+        progress_callback: Callable[[str], None] | None = None,
+    ) -> Track:
         track_id_from_url = extract_spotify_id(spotify_url, "track")
         existing = None
         if track_id_from_url:
@@ -67,6 +72,8 @@ class TrackManager:
         # Download: need details if we skipped the API call (track was already in DB).
         if details is None:
             details = spotify_client.get_track_details(spotify_url)
+        if progress_callback is not None:
+            progress_callback("started")
         result = downloader_service.download_track_to_tmp(details, self.files)
         final_path = self.files.atomic_move_to_library(track_id, result.tmp_mp3_path)
 
@@ -78,6 +85,8 @@ class TrackManager:
 
         # Ensure cover art is embedded for newly downloaded audio.
         ensure_cover_art(final_path, existing.track_image_url)
+        if progress_callback is not None:
+            progress_callback("completed")
         return existing
 
     def load_local(self, track_id: str) -> Track:

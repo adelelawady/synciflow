@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
+from typing import Callable, List
 
 from sqlmodel import Session, delete, select
 
@@ -24,7 +24,11 @@ class PlaylistManager:
     tracks: TrackManager
     files: FileManager
 
-    def load_playlist(self, spotify_playlist_url: str) -> Playlist:
+    def load_playlist(
+        self,
+        spotify_playlist_url: str,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> Playlist:
         details: PlaylistDetails = spotify_client.get_playlist_details(spotify_playlist_url)
         playlist_id = details.playlist_id or extract_spotify_id(spotify_playlist_url, "playlist")
         if not playlist_id:
@@ -54,11 +58,17 @@ class PlaylistManager:
         self.session.commit()
 
         track_ids: List[str] = []
-        for pos, track_url in enumerate(details.track_urls or []):
+        track_urls = details.track_urls or []
+        total = len(track_urls)
+        for pos, track_url in enumerate(track_urls):
+            # Do not forward the playlist progress callback into TrackManager:
+            # TrackManager uses a different callback shape ("started"/"completed").
             track = self.tracks.load_track(track_url)
             rel = PlaylistTrack(playlist_id=playlist_id, track_id=track.track_id, position=pos)
             self.session.add(rel)
             track_ids.append(track.track_id)
+            if progress_callback is not None:
+                progress_callback(pos + 1, total, track.track_title or track.track_id)
 
         self.session.commit()
 

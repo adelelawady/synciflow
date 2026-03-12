@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 
 import typer
+from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn
 from sqlmodel import select
 
 from synciflow.api.server import create_app
@@ -27,7 +28,20 @@ def track(url: str):
     lib = Library.create(AppConfig())
     with lib.session() as session:
         tm = lib.track_manager(session)
-        t = tm.load_track(url)
+        progress = Progress(
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+        )
+        with progress:
+            task_id = progress.add_task("Downloading track...", total=2)
+            def track_progress(phase: str) -> None:
+                if phase == "started":
+                    progress.update(task_id, advance=1, description="Downloading...")
+                else:
+                    progress.update(task_id, advance=1, description="Done")
+            t = tm.load_track(url, progress_callback=track_progress)
+            progress.update(task_id, completed=2, description="Done")
         typer.echo(f"{t.track_title} - {t.artist_title}")
         typer.echo(f"id={t.track_id}")
         typer.echo(f"path={t.audio_path}")
@@ -51,7 +65,23 @@ def playlist(url: str):
     lib = Library.create(AppConfig())
     with lib.session() as session:
         pm = lib.playlist_manager(session)
-        p = pm.load_playlist(url)
+        progress = Progress(
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+        )
+        with progress:
+            task_id = progress.add_task("Loading playlist...", total=None)
+
+            def progress_cb(current: int, total: int, message: str) -> None:
+                progress.update(
+                    task_id,
+                    total=total,
+                    completed=current,
+                    description=message[:60] if message else f"Track {current}/{total}",
+                )
+
+            p = pm.load_playlist(url, progress_callback=progress_cb)
         typer.echo(f"{p.title}")
         typer.echo(f"id={p.playlist_id}")
 
@@ -73,7 +103,23 @@ def sync(url: str):
     lib = Library.create(AppConfig())
     with lib.session() as session:
         sm = lib.sync_manager(session)
-        r = sm.sync_playlist(url)
+        progress = Progress(
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+        )
+        with progress:
+            task_id = progress.add_task("Syncing playlist...", total=None)
+
+            def progress_cb(current: int, total: int, message: str) -> None:
+                progress.update(
+                    task_id,
+                    total=total or 1,
+                    completed=current,
+                    description=message[:60] if message else "Syncing...",
+                )
+
+            r = sm.sync_playlist(url, progress_callback=progress_cb)
         typer.echo(f"added={r.added} removed={r.removed} kept={r.kept}")
 
 
