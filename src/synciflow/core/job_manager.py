@@ -1,10 +1,39 @@
 from __future__ import annotations
 
+import time
 import uuid
 
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import PendingRollbackError
 from sqlmodel import Session, select
 
 from synciflow.db.models import Job, utcnow
+
+
+def _commit_with_retry(session: Session, attempts: int = 8, base_sleep_s: float = 0.05) -> None:
+    """
+    SQLite allows only one writer at a time. When background jobs update progress while
+    other writes are happening, commits can fail with 'database is locked'.
+    Retry with a small backoff instead of crashing the job runner.
+    """
+    for i in range(attempts):
+        try:
+            session.commit()
+            return
+        except PendingRollbackError:
+            # A previous flush/commit failed; the Session must be rolled back
+            # before it can start a new transaction.
+            session.rollback()
+        except OperationalError as e:
+            msg = str(e).lower()
+            if "database is locked" not in msg and "database locked" not in msg:
+                raise
+            # Clear the failed transaction state before retrying.
+            session.rollback()
+            # Backoff: 50ms, 100ms, 200ms... capped by attempts.
+            time.sleep(base_sleep_s * (2**i))
+    # Final attempt without swallowing the error
+    session.commit()
 
 
 def create_job(session: Session, job_type: str) -> Job:
@@ -18,7 +47,7 @@ def create_job(session: Session, job_type: str) -> Job:
         message=None,
     )
     session.add(job)
-    session.commit()
+    _commit_with_retry(session)
     session.refresh(job)
     return job
 
@@ -40,7 +69,7 @@ def update_job_progress(
         job.status = "running"
     job.updated_at = utcnow()
     session.add(job)
-    session.commit()
+    _commit_with_retry(session)
 
 
 def complete_job(session: Session, job_id: str) -> None:
@@ -52,7 +81,7 @@ def complete_job(session: Session, job_id: str) -> None:
     job.progress = 1.0
     job.updated_at = utcnow()
     session.add(job)
-    session.commit()
+    _commit_with_retry(session)
 
 
 def fail_job(session: Session, job_id: str, message: str | None = None) -> None:
@@ -65,7 +94,7 @@ def fail_job(session: Session, job_id: str, message: str | None = None) -> None:
         job.message = message
     job.updated_at = utcnow()
     session.add(job)
-    session.commit()
+    _commit_with_retry(session)
 
 
 def get_job(session: Session, job_id: str) -> Job | None:
