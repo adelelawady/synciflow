@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Callable, List
 
 from sqlmodel import Session, delete, select
@@ -10,12 +11,16 @@ from synciflow.core.utils import LIKES_PLAYLIST_ID, extract_spotify_id
 from synciflow.db.models import Playlist, PlaylistTrack
 from synciflow.schemas.playlist import PlaylistDetails
 from synciflow.services import spotify_client
+from synciflow.services.downloader import DownloadError
 from synciflow.storage.file_manager import FileManager
 from synciflow.storage.playlist_metadata import (
     PlaylistMetadata,
     read_playlist_metadata,
     write_playlist_metadata,
 )
+
+
+LOG = logging.getLogger("synciflow.playlist")
 
 
 @dataclass(frozen=True)
@@ -63,7 +68,17 @@ class PlaylistManager:
         for pos, track_url in enumerate(track_urls):
             # Do not forward the playlist progress callback into TrackManager:
             # TrackManager uses a different callback shape ("started"/"completed").
-            track = self.tracks.load_track(track_url)
+            try:
+                track = self.tracks.load_track(track_url)
+            except DownloadError as exc:
+                # If a track cannot be resolved/downloaded (for example, when no
+                # YouTube video ID can be found), skip it but keep loading the rest
+                # of the playlist.
+                LOG.warning("Skipping track while loading playlist; could not download: %s (%s)", track_url, exc)
+                if progress_callback is not None:
+                    progress_callback(pos + 1, total, "Skipping track (unresolved on YouTube)")
+                continue
+
             rel = PlaylistTrack(playlist_id=playlist_id, track_id=track.track_id, position=pos)
             self.session.add(rel)
             track_ids.append(track.track_id)

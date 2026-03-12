@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import logging
 from typing import Callable
 
 from sqlmodel import Session, delete, func, select
@@ -10,8 +11,12 @@ from synciflow.core.utils import LIKES_PLAYLIST_ID, extract_spotify_id
 from synciflow.db.models import Playlist, PlaylistTrack, Track
 from synciflow.schemas.playlist import PlaylistDetails
 from synciflow.services import spotify_client
+from synciflow.services.downloader import DownloadError
 
 from .track_manager import TrackManager
+
+
+LOG = logging.getLogger("synciflow.sync")
 
 
 @dataclass(frozen=True)
@@ -73,7 +78,16 @@ class SyncManager:
 
         total = len(desired_track_urls)
         for pos, track_url in enumerate(desired_track_urls):
-            track = self.tracks.load_track(track_url)
+            try:
+                track = self.tracks.load_track(track_url)
+            except DownloadError as exc:
+                # If we cannot resolve or download a track (e.g. no matching YouTube
+                # video), skip it but keep the overall sync job running.
+                LOG.warning("Skipping track during sync; could not download: %s (%s)", track_url, exc)
+                if progress_callback is not None:
+                    progress_callback(pos + 1, total, "Skipping track (unresolved on YouTube)")
+                continue
+
             self.session.add(PlaylistTrack(playlist_id=playlist_id, track_id=track.track_id, position=pos))
             if progress_callback is not None:
                 progress_callback(pos + 1, total, "Syncing tracks")

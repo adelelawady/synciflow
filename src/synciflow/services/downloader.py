@@ -10,6 +10,13 @@ from synciflow.storage.file_manager import FileManager
 from .youtube import download_youtube_video_as_mp3, populate_youtube_details_for_track
 
 
+class DownloadError(RuntimeError):
+    """
+    Raised when a track cannot be downloaded (for example, when a YouTube
+    video ID cannot be resolved for the given Spotify track metadata).
+    """
+
+
 @dataclass(frozen=True)
 class DownloadResult:
     youtube_video_id: str
@@ -26,7 +33,7 @@ def download_track_to_tmp(details: TrackDetails, file_manager: FileManager) -> D
     file_manager.init_storage()
     youtube_video_id = populate_youtube_details_for_track(details.track_title, details.artist_title)
     if not youtube_video_id:
-        raise RuntimeError("Could not resolve YouTube video ID for track.")
+        raise DownloadError("Could not resolve YouTube video ID for track.")
 
     # Download into tmp dir; yt-dlp will name it {video_id}.mp3.
     tmp_dir = str(file_manager.storage.tmp_dir)

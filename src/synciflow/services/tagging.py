@@ -5,7 +5,7 @@ from typing import Optional
 import mimetypes
 import urllib.request
 
-from mutagen.id3 import APIC, ID3, ID3NoHeaderError
+from mutagen.id3 import APIC, ID3NoHeaderError
 from mutagen.mp3 import MP3
 
 
@@ -29,17 +29,26 @@ def ensure_cover_art(mp3_path: Path, image_url: Optional[str]) -> Path:
         return mp3_path
 
     try:
+        # Load the MP3 with ID3 support so we can inspect and modify tags.
         audio = MP3(mp3_path)
     except Exception:
         return mp3_path
 
     # If there are already APIC frames, leave as-is.
     try:
-        id3 = ID3(mp3_path)
-        if any(key.startswith("APIC") for key in id3.keys()):
+        tags = audio.tags
+        if tags is not None and any(key.startswith("APIC") for key in tags.keys()):
             return mp3_path
     except ID3NoHeaderError:
-        id3 = ID3()
+        tags = None
+
+    if tags is None:
+        try:
+            audio.add_tags()
+        except Exception:
+            # If tags still cannot be added, bail out.
+            return mp3_path
+        tags = audio.tags
 
     try:
         with urllib.request.urlopen(image_url) as resp:
@@ -49,7 +58,7 @@ def ensure_cover_art(mp3_path: Path, image_url: Optional[str]) -> Path:
         return mp3_path
 
     try:
-        id3.add(
+        tags.add(
             APIC(
                 encoding=3,
                 mime=mime,
@@ -58,7 +67,8 @@ def ensure_cover_art(mp3_path: Path, image_url: Optional[str]) -> Path:
                 data=image_data,
             )
         )
-        id3.save(mp3_path)
+        # Save tags back to the file; v2.3 is widely supported.
+        audio.save(v2_version=3)
     except Exception:
         return mp3_path
 

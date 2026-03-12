@@ -53,7 +53,7 @@ class TrackManager:
         else:
             track_id = existing.track_id
 
-        # If audio exists already, ensure DB path is set and return.
+        # If audio exists already, ensure DB path/metadata are set and return.
         if self.files.exists(track_id):
             audio_path_path = self.files.audio_path(track_id)
             audio_path_str = str(audio_path_path)
@@ -61,17 +61,37 @@ class TrackManager:
                 existing.audio_path = audio_path_str
                 if existing.downloaded_at is None:
                     existing.downloaded_at = datetime.now(timezone.utc)
-                self.session.add(existing)
-                self.session.commit()
-                self.session.refresh(existing)
+
+            # Backfill missing metadata (including image URL) from Spotify if needed.
+            if not existing.track_image_url or not existing.track_title or not existing.artist_title:
+                details = spotify_client.get_track_details(existing.spotify_url)
+                if not existing.track_title and details.track_title:
+                    existing.track_title = details.track_title
+                if not existing.artist_title and details.artist_title:
+                    existing.artist_title = details.artist_title
+                if not existing.track_image_url and details.track_image_url:
+                    existing.track_image_url = details.track_image_url
+
+            self.session.add(existing)
+            self.session.commit()
+            self.session.refresh(existing)
 
             # Ensure cover art is present if we have an image URL.
             ensure_cover_art(audio_path_path, existing.track_image_url)
             return existing
 
-        # Download: need details if we skipped the API call (track was already in DB).
+        # Download: need details if we skipped the API call (track was already in DB),
+        # and use them to backfill any missing metadata (including image URL).
         if details is None:
             details = spotify_client.get_track_details(spotify_url)
+
+        if not existing.track_title and details.track_title:
+            existing.track_title = details.track_title
+        if not existing.artist_title and details.artist_title:
+            existing.artist_title = details.artist_title
+        if not existing.track_image_url and details.track_image_url:
+            existing.track_image_url = details.track_image_url
+
         if progress_callback is not None:
             progress_callback("started")
         result = downloader_service.download_track_to_tmp(details, self.files)
