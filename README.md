@@ -1,17 +1,17 @@
-[![GitHub Stars](https://img.shields.io/github/stars/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow/network/members)
-[![GitHub Issues](https://img.shields.io/github/issues/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow/issues)
-[![GitHub License](https://img.shields.io/github/license/adelelawady/synciflow?style=for-the-badge)](LICENSE)
-[![Repo Size](https://img.shields.io/github/repo-size/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
-[![Last Commit](https://img.shields.io/github/last-commit/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow/commits/main)
-[![Top Language](https://img.shields.io/github/languages/top/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
+[GitHub Stars](https://github.com/adelelawady/synciflow/stargazers)
+[GitHub Forks](https://github.com/adelelawady/synciflow/network/members)
+[GitHub Issues](https://github.com/adelelawady/synciflow/issues)
+[GitHub License](LICENSE)
+[Repo Size](https://github.com/adelelawady/synciflow)
+[Last Commit](https://github.com/adelelawady/synciflow/commits/main)
+[Top Language](https://github.com/adelelawady/synciflow)
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-async%20API-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Typer](https://img.shields.io/badge/CLI-Typer-0A7BBB?style=for-the-badge)
-![SQLite](https://img.shields.io/badge/DB-SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
-![yt-dlp](https://img.shields.io/badge/Downloader-yt--dlp-FF0000?style=for-the-badge&logo=youtube&logoColor=white)
-![Selenium](https://img.shields.io/badge/Selenium-headless%20Chrome-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
+Python
+FastAPI
+Typer
+SQLite
+yt-dlp
+Selenium
 
 ---
 
@@ -33,33 +33,30 @@ Ideal for building a private, self‑hosted music collection that mirrors your S
 - **Offline library from Spotify URLs**  
   - Load individual tracks or entire playlists by Spotify URL.
   - Metadata (title, artist, artwork) stored in SQLite.
-
+- **Spotify Liked Songs as a playlist**  
+  - Use `syncify-py`'s login-based likes scraping to mirror your Spotify Liked Songs.
+  - Exposed locally as a pseudo-playlist with stable `playlist_id` of `likes`.
+  - Can be listed, inspected, and exported just like any other playlist.
 - **Automated YouTube resolution & download**  
   - Resolves Spotify tracks to YouTube using Selenium + headless Chrome.
   - Downloads audio with `yt-dlp` and converts to high‑quality MP3 via `ffmpeg`.
-
 - **Cover art embedding**  
   - Downloads artwork and embeds it directly into MP3 files via `mutagen`.
-
 - **Playlist sync engine**  
   - Keeps a local playlist in sync with the current Spotify playlist contents.
   - Adds new tracks, prunes removed ones, and cleans up unreferenced files.
-
 - **Structured local storage**  
   - Deterministic path layout under `storage_data/` for tracks, temp files, and playlist metadata.
   - Track filenames automatically sanitized and normalized.
-
 - **Two CLIs**  
   - **Basic CLI** (`synciflow ...`) for scripting and automation.
   - **Smart CLI** (`synciflow smart`) with rich, interactive menus powered by `rich`.
-
 - **HTTP API**  
   - FastAPI app exposing endpoints to:
     - Load tracks/playlists
     - Sync playlists
     - List tracks/playlists
     - Stream or download MP3s and playlist ZIPs.
-
 - **Job tracking & notifications**  
   - Long-running tasks (track/playlist load, sync) run in the background and are tracked in a SQLite `jobs` table.
   - Real-time updates over a WebSocket (`/ws/notifications`) for progress and completion events.
@@ -71,22 +68,23 @@ Ideal for building a private, self‑hosted music collection that mirrors your S
 
 At a high level:
 
-1. **Input**: You provide a Spotify track or playlist URL.
+1. **Input**: You provide a Spotify track or playlist URL, or trigger a Liked Songs sync.
 2. **Metadata fetch**: `syncify` (external library) is used to obtain structured metadata:
-   - Track: ID, title, artist, image URL.
-   - Playlist: ID, title, image, track URLs.
+  - Track: ID, title, artist, image URL.
+  - Playlist: ID, title, image, track URLs.
+  - Liked Songs: a list of liked track URLs scraped after you log into Spotify in a browser window.
 3. **Resolution**: For each track, synciflow:
-   - Searches YouTube via Selenium headless Chrome.
-   - Resolves a YouTube video ID for that track/artist pair.
+  - Searches YouTube via Selenium headless Chrome.
+  - Resolves a YouTube video ID for that track/artist pair.
 4. **Download**:
-   - Uses `yt-dlp` to download the audio.
-   - Uses `ffmpeg` to convert into a high‑quality MP3.
+  - Uses `yt-dlp` to download the audio.
+  - Uses `ffmpeg` to convert into a high‑quality MP3.
 5. **Library storage**:
-   - Files are moved atomically into `storage_data/tracks/<prefix>/<track_id>.mp3`.
-   - Metadata is stored in SQLite via `SQLModel` (`Track`, `Playlist`, `PlaylistTrack`).
+  - Files are moved atomically into `storage_data/tracks/<prefix>/<track_id>.mp3`.
+  - Metadata is stored in SQLite via `SQLModel` (`Track`, `Playlist`, `PlaylistTrack`).
 6. **Serving & tooling**:
-   - CLI commands and FastAPI endpoints operate against this local library.
-   - Playlists can be exported as ZIPs with embedded cover art and nice filenames.
+  - CLI commands and FastAPI endpoints operate against this local library.
+  - Playlists can be exported as ZIPs with embedded cover art and nice filenames.
 
 ### Core Components
 
@@ -95,33 +93,27 @@ At a high level:
   - SQLite engine + migrations (`db/database.py`)
   - Filesystem layout (`storage/file_manager.py`, `storage/path_manager.py`)
   - Managers: `TrackManager`, `PlaylistManager`, `SyncManager`.
-
 - **Track management**: `TrackManager`  
-  Handles:
+Handles:
   - Loading tracks by Spotify URL (`load_track`)
   - Local‑first loading from existing MP3s (`load_local`)
   - Triggering YouTube resolution + download pipeline.
-
 - **Playlist management**: `PlaylistManager`  
-  Handles:
+Handles:
   - Loading playlists by Spotify URL (`load_playlist`)
   - Persisting playlist metadata to JSON in `storage_data/playlists/`
   - Rebuilding playlist/track relations from local files (`load_local`).
-
 - **Sync engine**: `SyncManager`  
-  Compares current Spotify track set vs. local DB, then:
+Compares current Spotify track set vs. local DB, then:
   - Adds missing tracks.
   - Rebuilds ordered relations.
   - Removes unreferenced tracks from DB and disk.
-
 - **API layer**: `api/server.py`  
-  FastAPI app with endpoints for loading, listing, streaming, and exporting.
-
+FastAPI app with endpoints for loading, listing, streaming, and exporting.
 - **Job tracking**: `core/job_manager.py`  
-  Creates and updates jobs (pending → running → completed/failed) in the `jobs` table. Used by the API to return a `job_id` immediately and run work in a background thread.
-
+Creates and updates jobs (pending → running → completed/failed) in the `jobs` table. Used by the API to return a `job_id` immediately and run work in a background thread.
 - **Notification bus**: `core/notification_bus.py`  
-  Thread-safe event bus: sync code (e.g. background workers) publishes events via `publish_sync()`; a bridge task forwards them to async subscribers. WebSocket clients subscribe to receive real-time events (e.g. `PLAYLIST_PROGRESS`, `TRACK_DOWNLOAD_COMPLETED`, `ERROR`).
+Thread-safe event bus: sync code (e.g. background workers) publishes events via `publish_sync()`; a bridge task forwards them to async subscribers. WebSocket clients subscribe to receive real-time events (e.g. `PLAYLIST_PROGRESS`, `TRACK_DOWNLOAD_COMPLETED`, `ERROR`).
 
 ---
 
@@ -230,10 +222,12 @@ lib = Library.create(AppConfig(storage_root=Path("/my/music"), data_root=Path("/
 
 synciflow itself does **not** hard‑code environment variables, but its dependencies may require them (e.g. `syncify` for Spotify credentials). A typical setup might include:
 
+
 | Variable            | Required | Description                                  |
 | ------------------- | -------- | -------------------------------------------- |
 | `SPOTIFY_CLIENT_ID` | Maybe    | Used by the `syncify` library (if required). |
 | `SPOTIFY_SECRET`    | Maybe    | Used by the `syncify` library (if required). |
+
 
 Refer to the `syncify` project documentation for exact Spotify configuration requirements.
 
@@ -269,6 +263,25 @@ Outputs:
 
 - Playlist title
 - Internal `playlist_id`
+
+#### Sync your Spotify Liked Songs as a playlist
+
+```bash
+synciflow likes
+```
+
+This will:
+
+- Open a browser window (via `syncify-py`) so you can log into Spotify.
+- Scrape your Liked Songs and sync them into a local pseudo-playlist with `playlist_id=likes`.
+
+After that, you can treat `likes` like any other playlist:
+
+```bash
+synciflow playlist-local likes
+synciflow download-playlist-zip likes /path/to/output
+synciflow save-playlist likes /path/to/output
+```
 
 #### Sync an existing playlist to the latest Spotify state
 
@@ -350,45 +363,57 @@ All endpoints are defined in `synciflow.api.server.create_app`.
 
 These endpoints create a job, return **202 Accepted** with `{ "job_id": "<uuid>" }`, and run the work in a background task. Use **GET /jobs/{job_id}** to poll status, or connect to **WebSocket /ws/notifications** for real-time progress.
 
-| Method | Path                    | Body example                    | Description                                       |
-| ------ | ----------------------- | --------------------------------| ------------------------------------------------- |
-| POST   | `/track/load`           | `{ "url": "<spotify_track>" }`  | Load a track by Spotify URL (download if needed). Returns 202 + `job_id`. |
-| POST   | `/playlist/load`        | `{ "url": "<spotify_playlist>"}`| Load a playlist by Spotify URL, downloading tracks. Returns 202 + `job_id`. |
-| POST   | `/playlist/sync`        | `{ "url": "<spotify_playlist>"}`| Sync a playlist to the latest Spotify track set. Returns 202 + `job_id`. |
+
+| Method | Path             | Body example                     | Description                                                                                                  |
+| ------ | ---------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| POST   | `/track/load`    | `{ "url": "<spotify_track>" }`   | Load a track by Spotify URL (download if needed). Returns 202 + `job_id`.                                    |
+| POST   | `/playlist/load` | `{ "url": "<spotify_playlist>"}` | Load a playlist by Spotify URL, downloading tracks. Returns 202 + `job_id`.                                  |
+| POST   | `/playlist/sync` | `{ "url": "<spotify_playlist>"}` | Sync a playlist to the latest Spotify track set. Returns 202 + `job_id`.                                     |
+| POST   | `/likes/load`    | *no body*                        | Load your Spotify Liked Songs into a local pseudo-playlist with `playlist_id=likes`. Returns 202 + `job_id`. |
+| POST   | `/likes/sync`    | *no body*                        | Sync the `likes` pseudo-playlist against the current Spotify Liked Songs set. Returns 202 + `job_id`.        |
+
 
 ### Jobs & notifications
 
-| Method   | Path                 | Description |
-| -------- | -------------------- | ----------- |
-| GET      | `/jobs/{job_id}`     | Get job status: `job_id`, `job_type`, `status`, `progress`, `message`, `created_at`, `updated_at`. |
-| WebSocket| `/ws/notifications`  | Real-time events: `TRACK_DOWNLOAD_STARTED`, `TRACK_DOWNLOAD_COMPLETED`, `PLAYLIST_PROGRESS`, `PLAYLIST_COMPLETED`, `SYNC_PROGRESS`, `SYNC_COMPLETED`, `ERROR`. Each message is JSON with `event_type`, `job_id`, `progress`, `message`, and optional `payload`. |
+
+| Method    | Path                | Description                                                                                                                                                                                                                                                     |
+| --------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET       | `/jobs/{job_id}`    | Get job status: `job_id`, `job_type`, `status`, `progress`, `message`, `created_at`, `updated_at`.                                                                                                                                                              |
+| WebSocket | `/ws/notifications` | Real-time events: `TRACK_DOWNLOAD_STARTED`, `TRACK_DOWNLOAD_COMPLETED`, `PLAYLIST_PROGRESS`, `PLAYLIST_COMPLETED`, `SYNC_PROGRESS`, `SYNC_COMPLETED`, `ERROR`. Each message is JSON with `event_type`, `job_id`, `progress`, `message`, and optional `payload`. |
+
 
 **Flow:** A POST to `/track/load`, `/playlist/load`, or `/playlist/sync` creates a row in the `jobs` table (status `pending`), returns 202 with `job_id`, and starts a background thread. The thread updates the job (`running` → `completed` or `failed`) and publishes events to the notification bus. Clients can poll `GET /jobs/{job_id}` or subscribe to `ws://host/ws/notifications` to receive progress and completion events.
 
 ### Local-first load
 
-| Method | Path                                   | Description                                      |
-| ------ | -------------------------------------- | ------------------------------------------------ |
-| POST   | `/track/{track_id}/load_local`        | Register/repair a track from a local MP3.        |
-| POST   | `/playlist/{playlist_id}/load_local`  | Load playlist from stored metadata and local tracks. |
+
+| Method | Path                                 | Description                                          |
+| ------ | ------------------------------------ | ---------------------------------------------------- |
+| POST   | `/track/{track_id}/load_local`       | Register/repair a track from a local MP3.            |
+| POST   | `/playlist/{playlist_id}/load_local` | Load playlist from stored metadata and local tracks. |
+
 
 ### Querying library
 
-| Method | Path                         | Description                         |
-| ------ | ---------------------------- | ----------------------------------- |
-| GET    | `/track/{track_id}`         | Get track metadata from DB.         |
-| GET    | `/playlist/{playlist_id}`   | Get playlist metadata from DB.      |
-| GET    | `/tracks`                   | List all tracks.                    |
-| GET    | `/playlists`                | List all playlists.                 |
+
+| Method | Path                             | Description                        |
+| ------ | -------------------------------- | ---------------------------------- |
+| GET    | `/track/{track_id}`              | Get track metadata from DB.        |
+| GET    | `/playlist/{playlist_id}`        | Get playlist metadata from DB.     |
+| GET    | `/tracks`                        | List all tracks.                   |
+| GET    | `/playlists`                     | List all playlists.                |
 | GET    | `/playlist/{playlist_id}/tracks` | Get ordered tracks for a playlist. |
+
 
 ### Streaming & download
 
-| Method | Path                                      | Description                                  |
-| ------ | ----------------------------------------- | -------------------------------------------- |
-| GET    | `/track/{track_id}/stream`               | Stream MP3 for a track.                      |
-| GET    | `/track/{track_id}/download`             | Download MP3 for a track (nice filename).    |
-| GET    | `/playlist/{playlist_id}/download.zip`   | Download ZIP of playlist tracks.             |
+
+| Method | Path                                   | Description                               |
+| ------ | -------------------------------------- | ----------------------------------------- |
+| GET    | `/track/{track_id}/stream`             | Stream MP3 for a track.                   |
+| GET    | `/track/{track_id}/download`           | Download MP3 for a track (nice filename). |
+| GET    | `/playlist/{playlist_id}/download.zip` | Download ZIP of playlist tracks.          |
+
 
 ---
 
@@ -449,27 +474,19 @@ synciflow/
 > Place your screenshots under `docs/images/` (or similar) to match the paths below.
 
 1. **Smart CLI main menu**
-
-   ```markdown
+  ```markdown
    ![Screenshot 1 – Smart CLI](docs/images/screenshot-1-smart-cli.png)
-   ```
-
+  ```
    Shows the interactive `synciflow smart` main menu with options to load tracks/playlists, list content, and export.
-
 2. **Track list view**
-
-   ```markdown
+  ```markdown
    ![Screenshot 2 – Track List](docs/images/screenshot-2-track-list.png)
-   ```
-
+  ```
    Displays a `rich` table of tracks with IDs, titles, artists, and whether audio is present.
-
 3. **Playlist ZIP export**
-
-   ```markdown
+  ```markdown
    ![Screenshot 3 – Playlist Export](docs/images/screenshot-3-playlist-zip.png)
-   ```
-
+  ```
    Illustrates a successful export of a playlist to a ZIP file and the ZIP contents in a file explorer.
 
 ---
@@ -521,20 +538,19 @@ Then open `http://127.0.0.1:8000` or add a docs UI (e.g. via FastAPI’s automat
 Contributions are very welcome!
 
 - **Bug reports & feature requests**:  
-  Open an issue with a clear description and, if possible, reproduction steps.
-
+Open an issue with a clear description and, if possible, reproduction steps.
 - **Pull requests**:
   1. Fork the repo.
-  2. Create a feature branch:  
-     ```bash
+  2. Create a feature branch:
+    ```bash
      git checkout -b feature/my-awesome-idea
-     ```
+    ```
   3. Make your changes, add tests where appropriate.
   4. Run the test suite (and format/lint, if configured).
   5. Open a Pull Request describing:
-     - What you changed
-     - Why it’s useful
-     - Any breaking changes or migration notes
+    - What you changed
+    - Why it’s useful
+    - Any breaking changes or migration notes
 
 Please keep code style consistent with the existing project and prefer small, focused PRs.
 
@@ -557,3 +573,4 @@ If you find **synciflow** useful:
 ```text
 If you like it, star it ⭐
 ```
+

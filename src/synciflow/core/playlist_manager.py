@@ -6,7 +6,7 @@ from typing import Callable, List
 from sqlmodel import Session, delete, select
 
 from synciflow.core.track_manager import TrackManager
-from synciflow.core.utils import extract_spotify_id
+from synciflow.core.utils import LIKES_PLAYLIST_ID, extract_spotify_id
 from synciflow.db.models import Playlist, PlaylistTrack
 from synciflow.schemas.playlist import PlaylistDetails
 from synciflow.services import spotify_client
@@ -24,21 +24,21 @@ class PlaylistManager:
     tracks: TrackManager
     files: FileManager
 
-    def load_playlist(
+    def _load_from_details(
         self,
-        spotify_playlist_url: str,
+        details: PlaylistDetails,
+        playlist_id: str,
         progress_callback: Callable[[int, int, str], None] | None = None,
+        fallback_url: str = "",
     ) -> Playlist:
-        details: PlaylistDetails = spotify_client.get_playlist_details(spotify_playlist_url)
-        playlist_id = details.playlist_id or extract_spotify_id(spotify_playlist_url, "playlist")
-        if not playlist_id:
-            raise ValueError("Could not determine playlist_id from Spotify URL/details.")
-
+        """
+        Core implementation for ingesting a playlist from PlaylistDetails.
+        """
         playlist = self.session.exec(select(Playlist).where(Playlist.playlist_id == playlist_id)).first()
         if playlist is None:
             playlist = Playlist(
                 playlist_id=playlist_id,
-                playlist_url=details.playlist_url or spotify_playlist_url,
+                playlist_url=details.playlist_url or fallback_url,
                 title=details.title,
                 playlist_image_url=details.playlist_image_url,
             )
@@ -46,7 +46,7 @@ class PlaylistManager:
             self.session.commit()
             self.session.refresh(playlist)
         else:
-            playlist.playlist_url = details.playlist_url or playlist.playlist_url
+            playlist.playlist_url = details.playlist_url or playlist.playlist_url or fallback_url
             playlist.title = details.title or playlist.title
             playlist.playlist_image_url = details.playlist_image_url or playlist.playlist_image_url
             self.session.add(playlist)
@@ -76,6 +76,46 @@ class PlaylistManager:
         write_playlist_metadata(self.files.storage, metadata)
 
         return playlist
+
+    def load_playlist(
+        self,
+        spotify_playlist_url: str,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> Playlist:
+        details: PlaylistDetails = spotify_client.get_playlist_details(spotify_playlist_url)
+        playlist_id = details.playlist_id or extract_spotify_id(spotify_playlist_url, "playlist")
+        if not playlist_id:
+            raise ValueError("Could not determine playlist_id from Spotify URL/details.")
+
+        return self._load_from_details(
+            details=details,
+            playlist_id=playlist_id,
+            progress_callback=progress_callback,
+            fallback_url=spotify_playlist_url,
+        )
+
+    def load_likes(
+        self,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+        login_timeout: int = 120,
+        page_load_timeout: int = 30,
+        scroll_pause: float = 2.0,
+    ) -> Playlist:
+        """
+        Load Spotify Liked Songs into the library as a pseudo-playlist with a stable ID.
+        """
+        details = spotify_client.get_likes_details(
+            login_timeout=login_timeout,
+            page_load_timeout=page_load_timeout,
+            scroll_pause=scroll_pause,
+        )
+        # Enforce the stable likes playlist identifier regardless of adapter behavior.
+        return self._load_from_details(
+            details=details,
+            playlist_id=LIKES_PLAYLIST_ID,
+            progress_callback=progress_callback,
+            fallback_url=details.playlist_url,
+        )
 
     def load_local(self, playlist_id: str) -> Playlist:
         """

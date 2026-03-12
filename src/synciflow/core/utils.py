@@ -4,6 +4,9 @@ import re
 
 from synciflow.db.models import Track
 
+# Stable pseudo-playlist identifier for Spotify Liked Songs.
+LIKES_PLAYLIST_ID = "likes"
+
 _SPOTIFY_ID_RE = re.compile(r"/(track|playlist)/([A-Za-z0-9]+)")
 
 

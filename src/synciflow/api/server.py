@@ -31,6 +31,7 @@ from synciflow.core.notification_bus import (
     TRACK_DOWNLOAD_COMPLETED,
     TRACK_DOWNLOAD_STARTED,
 )
+from synciflow.core.utils import LIKES_PLAYLIST_ID
 from synciflow.db.database import get_session
 from synciflow.db.models import Playlist, PlaylistTrack, Track
 from synciflow.storage.zip_builder import build_playlist_zip
@@ -133,6 +134,50 @@ def _run_playlist_load_job(
             raise
 
 
+def _run_likes_load_job(
+    library: Library,
+    job_id: str,
+    bus: NotificationBus,
+) -> None:
+    with Session(library.engine) as session:
+        try:
+            update_job_progress(session, job_id, 0.0, "Loading liked songs")
+
+            def progress_cb(current: int, total: int, message: str) -> None:
+                with Session(library.engine) as s2:
+                    p = current / total if total else 0.0
+                    update_job_progress(s2, job_id, p, message)
+                bus.publish_sync(
+                    NotificationEvent(
+                        PLAYLIST_PROGRESS,
+                        job_id=job_id,
+                        progress=p,
+                        message=message,
+                        payload={"current": current, "total": total, "playlist_id": LIKES_PLAYLIST_ID},
+                    )
+                )
+
+            pm = library.playlist_manager(session)
+            playlist = pm.load_likes(progress_callback=progress_cb)
+
+            complete_job(session, job_id)
+            bus.publish_sync(
+                NotificationEvent(
+                    PLAYLIST_COMPLETED,
+                    job_id=job_id,
+                    progress=1.0,
+                    message=playlist.title or playlist.playlist_id,
+                    payload={"playlist_id": playlist.playlist_id},
+                )
+            )
+        except Exception as e:
+            fail_job(session, job_id, str(e))
+            bus.publish_sync(
+                NotificationEvent(ERROR, job_id=job_id, message=str(e))
+            )
+            raise
+
+
 def _run_sync_job(
     library: Library,
     url: str,
@@ -171,6 +216,55 @@ def _run_sync_job(
                         "added": result.added,
                         "removed": result.removed,
                         "kept": result.kept,
+                    },
+                )
+            )
+        except Exception as e:
+            fail_job(session, job_id, str(e))
+            bus.publish_sync(
+                NotificationEvent(ERROR, job_id=job_id, message=str(e))
+            )
+            raise
+
+
+def _run_likes_sync_job(
+    library: Library,
+    job_id: str,
+    bus: NotificationBus,
+) -> None:
+    with Session(library.engine) as session:
+        try:
+            update_job_progress(session, job_id, 0.0, "Starting likes sync")
+
+            def progress_cb(current: int, total: int, message: str) -> None:
+                with Session(library.engine) as s2:
+                    p = current / total if total else 0.0
+                    update_job_progress(s2, job_id, p, message)
+                bus.publish_sync(
+                    NotificationEvent(
+                        SYNC_PROGRESS,
+                        job_id=job_id,
+                        progress=p,
+                        message=message,
+                        payload={"current": current, "total": total, "playlist_id": LIKES_PLAYLIST_ID},
+                    )
+                )
+
+            sm = library.sync_manager(session)
+            result = sm.sync_likes(progress_callback=progress_cb)
+
+            complete_job(session, job_id)
+            bus.publish_sync(
+                NotificationEvent(
+                    SYNC_COMPLETED,
+                    job_id=job_id,
+                    progress=1.0,
+                    message=f"added={result.added} removed={result.removed} kept={result.kept}",
+                    payload={
+                        "added": result.added,
+                        "removed": result.removed,
+                        "kept": result.kept,
+                        "playlist_id": LIKES_PLAYLIST_ID,
                     },
                 )
             )
@@ -225,6 +319,18 @@ def create_app(library: Library | None = None) -> FastAPI:
         )
         return {"job_id": job.job_id}, 202
 
+    @app.post("/likes/load")
+    async def load_likes(session: Session = Depends(_session)):
+        """
+        Load Spotify Liked Songs into the library as a pseudo-playlist with ID 'likes'.
+        """
+        bus: NotificationBus = app.state.notification_bus
+        job = create_job(session, "likes_load")
+        asyncio.create_task(
+            asyncio.to_thread(_run_likes_load_job, library, job.job_id, bus)
+        )
+        return {"job_id": job.job_id}, 202
+
     @app.websocket("/ws/notifications")
     async def ws_notifications(websocket: WebSocket):
         await websocket.accept()
@@ -272,6 +378,18 @@ def create_app(library: Library | None = None) -> FastAPI:
         job = create_job(session, "sync")
         asyncio.create_task(
             asyncio.to_thread(_run_sync_job, library, req.url, job.job_id, bus)
+        )
+        return {"job_id": job.job_id}, 202
+
+    @app.post("/likes/sync")
+    async def sync_likes(session: Session = Depends(_session)):
+        """
+        Sync the Liked Songs pseudo-playlist (id='likes') against the current Spotify likes set.
+        """
+        bus: NotificationBus = app.state.notification_bus
+        job = create_job(session, "likes_sync")
+        asyncio.create_task(
+            asyncio.to_thread(_run_likes_sync_job, library, job.job_id, bus)
         )
         return {"job_id": job.job_id}, 202
 

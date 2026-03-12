@@ -10,7 +10,7 @@ from sqlmodel import select
 from synciflow.api.server import create_app
 from synciflow.config import AppConfig
 from synciflow.core.library_manager import Library
-from synciflow.core.utils import track_display_name
+from synciflow.core.utils import LIKES_PLAYLIST_ID, track_display_name
 from synciflow.db.models import Playlist, PlaylistTrack, Track
 from synciflow.services.tagging import ensure_cover_art
 from synciflow.storage.path_manager import ensure_parent_dir
@@ -84,6 +84,37 @@ def playlist(url: str):
             p = pm.load_playlist(url, progress_callback=progress_cb)
         typer.echo(f"{p.title}")
         typer.echo(f"id={p.playlist_id}")
+
+
+@app.command("likes")
+def likes():
+    """
+    Load or sync your Spotify Liked Songs into the offline library as a playlist with ID 'likes'.
+
+    This will open a visible browser window via syncify so you can log into Spotify.
+    """
+    lib = Library.create(AppConfig())
+    with lib.session() as session:
+        sm = lib.sync_manager(session)
+        progress = Progress(
+            TextColumn("[bold blue]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+        )
+        with progress:
+            task_id = progress.add_task("Syncing liked songs...", total=None)
+
+            def progress_cb(current: int, total: int, message: str) -> None:
+                progress.update(
+                    task_id,
+                    total=total or 1,
+                    completed=current,
+                    description=message[:60] if message else "Syncing liked songs...",
+                )
+
+            result = sm.sync_likes(progress_callback=progress_cb)
+        typer.echo(f"playlist_id={LIKES_PLAYLIST_ID}")
+        typer.echo(f"added={result.added} removed={result.removed} kept={result.kept}")
 
 
 @app.command("playlist-local")

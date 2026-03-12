@@ -12,7 +12,7 @@ from sqlmodel import delete, select
 from synciflow import __version__ as SYNCIFLOW_VERSION
 from synciflow.config import AppConfig
 from synciflow.core.library_manager import Library
-from synciflow.core.utils import track_display_name
+from synciflow.core.utils import LIKES_PLAYLIST_ID, track_display_name
 from synciflow.db.models import Playlist, PlaylistTrack, Track
 from synciflow.services.tagging import ensure_cover_art
 from synciflow.storage.path_manager import ensure_parent_dir
@@ -47,12 +47,17 @@ def _select_main_action() -> str:
     console.print("  [cyan]2[/cyan] Load track by ID (local)")
     console.print("  [cyan]3[/cyan] Load playlist by Spotify URL")
     console.print("  [cyan]4[/cyan] Load playlist by Spotify playlist ID")
-    console.print("  [cyan]5[/cyan] List tracks")
-    console.print("  [cyan]6[/cyan] List playlists")
-    console.print("  [cyan]7[/cyan] Save track to file")
-    console.print("  [cyan]8[/cyan] Save playlist to ZIP")
-    console.print("  [cyan]9[/cyan] Quit")
-    return Prompt.ask("Choose an option", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9"], default="9")
+    console.print("  [cyan]5[/cyan] Sync Spotify Liked Songs (playlist id: likes)")
+    console.print("  [cyan]6[/cyan] List tracks")
+    console.print("  [cyan]7[/cyan] List playlists")
+    console.print("  [cyan]8[/cyan] Save track to file")
+    console.print("  [cyan]9[/cyan] Save playlist to ZIP")
+    console.print("  [cyan]10[/cyan] Quit")
+    return Prompt.ask(
+        "Choose an option",
+        choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+        default="10",
+    )
 
 
 def _load_track_by_url(lib: Library) -> None:
@@ -357,7 +362,8 @@ def _playlist_details_menu(lib: Library, playlist_id: str) -> None:
             .order_by(PlaylistTrack.position)
         ).all()
 
-    table = Table(title=f"Playlist: {playlist.title or playlist_id}", show_lines=False)
+    display_title = playlist.title or ( "Liked Songs" if playlist_id == LIKES_PLAYLIST_ID else playlist_id )
+    table = Table(title=f"Playlist: {display_title}", show_lines=False)
     table.add_column("#", style="cyan", no_wrap=True)
     table.add_column("Track ID", style="magenta", no_wrap=True)
     table.add_column("Title", style="bold")
@@ -432,14 +438,45 @@ def run() -> None:
         elif choice == "4":
             _load_playlist_by_id(lib)
         elif choice == "5":
-            _list_tracks(lib)
+            _sync_likes(lib)
         elif choice == "6":
-            _list_playlists(lib)
+            _list_tracks(lib)
         elif choice == "7":
-            _save_track_flow(lib)
+            _list_playlists(lib)
         elif choice == "8":
+            _save_track_flow(lib)
+        elif choice == "9":
             _save_playlist_flow(lib)
         else:
             console.print("[dim]Goodbye.[/dim]")
             break
+
+
+def _sync_likes(lib: Library) -> None:
+    """
+    Sync Spotify Liked Songs into the library as a pseudo-playlist with ID 'likes'.
+    """
+    from synciflow.core.sync_manager import SyncManager  # local import for clarity
+
+    console.print(
+        "[dim]This will open a browser window via syncify so you can log into Spotify.[/dim]"
+    )
+    with lib.session() as session:
+        sm: SyncManager = lib.sync_manager(session)
+        # Simple text-based progress for now.
+        try:
+            result = sm.sync_likes()
+        except Exception as exc:
+            console.print(f"[red]Error syncing liked songs:[/red] {exc}")
+            return
+
+    console.print(
+        Panel(
+            f"[bold]Liked Songs synced[/bold]\n\n"
+            f"[dim]playlist id[/dim] {LIKES_PLAYLIST_ID}\n"
+            f"added={result.added} removed={result.removed} kept={result.kept}",
+            title="Likes sync",
+            expand=False,
+        )
+    )
 

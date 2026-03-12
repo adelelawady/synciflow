@@ -1,4 +1,4 @@
-syncify-py>=1.0.0
+syncify-py>=2.2.0
 yt-dlp>=2025.1.0
 mutagen>=1.47.0
 ffmpeg-python>=0.2.0
