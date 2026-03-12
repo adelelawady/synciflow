@@ -15,6 +15,7 @@ from synciflow.db.database import get_session
 from synciflow.db.models import Playlist, PlaylistTrack, Track
 from synciflow.storage.zip_builder import build_playlist_zip
 from synciflow.services.tagging import ensure_cover_art
+from fastapi.middleware.cors import CORSMiddleware
 
 
 class LoadRequest(BaseModel):
@@ -29,6 +30,13 @@ class AppState:
 def create_app(library: Library | None = None) -> FastAPI:
     library = library or Library.create()
     app = FastAPI(title="synciflow", version="0.0.1")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     app.state._synciflow = AppState(library=library)
 
     def _session():
