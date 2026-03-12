@@ -518,5 +518,43 @@ def create_app(library: Library | None = None) -> FastAPI:
         filename = f"{playlist.title or playlist_id}.zip"
         return FileResponse(path=str(zip_path), media_type="application/zip", filename=filename)
 
+    @app.get("/library/download-all-tracks.zip")
+    def download_all_tracks_zip(session: Session = Depends(_session)):
+        rows = session.exec(
+            select(Track).order_by(Track.created_at, Track.track_id)
+        ).all()
+
+        track_files = []
+        tmp_root = library.files.storage.tmp_dir / "library-zips" / "all-tracks"
+        position = 1
+        for track in rows:
+            if not track.audio_path:
+                continue
+            source_audio_path = Path(track.audio_path)
+            if not source_audio_path.exists():
+                continue
+
+            display_name = _track_display_name(track)
+
+            # Work on a temp copy so we do not mutate the library file.
+            tmp_audio_dir = tmp_root / "tracks"
+            tmp_audio_dir.mkdir(parents=True, exist_ok=True)
+            tmp_audio_path = tmp_audio_dir / f"{track.track_id}.mp3"
+            try:
+                shutil.copyfile(source_audio_path, tmp_audio_path)
+            except OSError:
+                continue
+
+            tagged_path = ensure_cover_art(tmp_audio_path, track.track_image_url)
+            track_files.append((position, track.track_id, display_name, tagged_path))
+            position += 1
+
+        if not track_files:
+            raise HTTPException(status_code=404, detail="No audio files available in library")
+
+        zip_path = build_playlist_zip(library.files, "all-tracks", track_files)
+        filename = "all-tracks.zip"
+        return FileResponse(path=str(zip_path), media_type="application/zip", filename=filename)
+
     return app
 

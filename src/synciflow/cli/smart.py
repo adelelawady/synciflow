@@ -52,11 +52,12 @@ def _select_main_action() -> str:
     console.print("  [cyan]7[/cyan] List playlists")
     console.print("  [cyan]8[/cyan] Save track to file")
     console.print("  [cyan]9[/cyan] Save playlist to ZIP")
-    console.print("  [cyan]10[/cyan] Quit")
+    console.print("  [cyan]10[/cyan] Save all tracks to ZIP")
+    console.print("  [cyan]11[/cyan] Quit")
     return Prompt.ask(
         "Choose an option",
-        choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
-        default="10",
+        choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"],
+        default="11",
     )
 
 
@@ -297,6 +298,39 @@ def _build_playlist_zip_with_cover(lib: Library, playlist_id: str) -> Path | Non
     return build_playlist_zip(lib.files, playlist_id, track_files)
 
 
+def _build_library_zip_with_cover(lib: Library) -> Path | None:
+    """Build a ZIP for all tracks in the library with display names and embedded cover art. Returns path to zip or None."""
+    with lib.session() as session:
+        tracks = session.exec(
+            select(Track).order_by(Track.created_at, Track.track_id)
+        ).all()
+
+    track_files = []
+    tmp_root = lib.files.storage.tmp_dir / "library-zips" / "all-tracks"
+    position = 1
+    for track in tracks:
+        if not track.audio_path:
+            continue
+        source_audio_path = Path(track.audio_path)
+        if not source_audio_path.exists():
+            continue
+        tmp_audio_dir = tmp_root / "tracks"
+        tmp_audio_dir.mkdir(parents=True, exist_ok=True)
+        tmp_audio_path = tmp_audio_dir / f"{track.track_id}.mp3"
+        try:
+            shutil.copyfile(source_audio_path, tmp_audio_path)
+        except OSError:
+            continue
+        tagged_path = ensure_cover_art(tmp_audio_path, track.track_image_url)
+        display_name = track_display_name(track)
+        track_files.append((position, track.track_id, display_name, tagged_path))
+        position += 1
+
+    if not track_files:
+        return None
+    return build_playlist_zip(lib.files, "all-tracks", track_files)
+
+
 def _save_playlist_flow(lib: Library) -> None:
     """Prompt for playlist ID and path, then save the playlist as a ZIP."""
     playlist_id = Prompt.ask("Playlist ID")
@@ -419,6 +453,26 @@ def _playlist_details_menu(lib: Library, playlist_id: str) -> None:
             break
 
 
+def _save_all_tracks_flow(lib: Library) -> None:
+    """Save all tracks in the library as a ZIP."""
+    zip_path = _build_library_zip_with_cover(lib)
+    if zip_path is None:
+        console.print("[yellow]No audio files available in the library.[/yellow]")
+        return
+    out = Prompt.ask("Output path (file or directory)")
+    out_path = Path(out).expanduser().resolve()
+    if out_path.is_dir():
+        dest = out_path / zip_path.name
+    else:
+        dest = out_path
+    try:
+        ensure_parent_dir(dest)
+        shutil.copyfile(zip_path, dest)
+        console.print(f"[green]Saved library ZIP to {dest}[/green]")
+    except Exception as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+
+
 def run() -> None:
     """
     Entry point for the smart CLI.
@@ -447,6 +501,8 @@ def run() -> None:
             _save_track_flow(lib)
         elif choice == "9":
             _save_playlist_flow(lib)
+        elif choice == "10":
+            _save_all_tracks_flow(lib)
         else:
             console.print("[dim]Goodbye.[/dim]")
             break

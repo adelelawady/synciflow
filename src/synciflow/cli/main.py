@@ -215,6 +215,40 @@ def _build_playlist_zip_with_cover(lib: Library, playlist_id: str) -> Path:
     return build_playlist_zip(lib.files, playlist_id, track_files)
 
 
+def _build_library_zip_with_cover(lib: Library) -> Path:
+    """Build a ZIP for all tracks in the library with display names and embedded cover art."""
+    with lib.session() as session:
+        tracks = session.exec(
+            select(Track).order_by(Track.created_at, Track.track_id)
+        ).all()
+
+    track_files = []
+    tmp_root = lib.files.storage.tmp_dir / "library-zips" / "all-tracks"
+    position = 1
+    for track in tracks:
+        if not track.audio_path:
+            continue
+        source_audio_path = Path(track.audio_path)
+        if not source_audio_path.exists():
+            continue
+        tmp_audio_dir = tmp_root / "tracks"
+        tmp_audio_dir.mkdir(parents=True, exist_ok=True)
+        tmp_audio_path = tmp_audio_dir / f"{track.track_id}.mp3"
+        try:
+            shutil.copyfile(source_audio_path, tmp_audio_path)
+        except OSError:
+            continue
+        tagged_path = ensure_cover_art(tmp_audio_path, track.track_image_url)
+        display_name = track_display_name(track)
+        track_files.append((position, track.track_id, display_name, tagged_path))
+        position += 1
+
+    if not track_files:
+        typer.echo("No audio files available in the library.", err=True)
+        raise typer.Exit(code=1)
+    return build_playlist_zip(lib.files, "all-tracks", track_files)
+
+
 @app.command("download-track")
 def download_track(track_id: str, out: Path | None = typer.Argument(None)):
     """
@@ -301,6 +335,23 @@ def download_playlist_zip(playlist_id: str, out: Path):
     ensure_parent_dir(dest)
     shutil.copyfile(zip_path, dest)
     typer.echo(f"Saved ZIP to {dest}")
+
+
+@app.command("download-all-tracks-zip")
+def download_all_tracks_zip(out: Path):
+    """
+    Build a ZIP file for all tracks in the library (with cover art) and save it to the given path.
+    """
+    lib = Library.create(AppConfig())
+    zip_path = _build_library_zip_with_cover(lib)
+    out = Path(out)
+    if out.is_dir():
+        dest = out / zip_path.name
+    else:
+        dest = out
+    ensure_parent_dir(dest)
+    shutil.copyfile(zip_path, dest)
+    typer.echo(f"Saved library ZIP to {dest}")
 
 
 @app.command("save-playlist")
