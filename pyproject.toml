@@ -1,5 +1,21 @@
 [build-system]
-requires = ["hatchling>=1.27.0"]
+requires = [
+  "hatchling>=1.27.0",
+  "hatch-pyinstaller",
+  # Needed in Hatch's isolated build env so PyInstaller can analyze/bundle imports
+  "fastapi>=0.110",
+  "uvicorn>=0.23",
+  "typer>=0.12",
+  "sqlmodel>=0.0.24",
+  "pydantic>=2.0",
+  "syncify-py>=2.1.0",
+  "yt-dlp>=2025.1.0",
+  "mutagen>=1.47.0",
+  "ffmpeg-python>=0.2.0",
+  "selenium>=4.0.0",
+  "webdriver-manager>=4.0.0",
+  "rich>=13.0.0",
+]
 build-backend = "hatchling.build"
 
 [project]
@@ -64,3 +80,11 @@ packages = ["src/synciflow"]
 include = [
   "src/synciflow/frontend/**",
 ]
+
+[tool.hatch.build.targets.pyinstaller]
+require-runtime-dependencies = true
+# Ensure the build env installs the project (and its dependencies)
+require-project = true
+scriptname = "synciflow.spec"
+flags = ["--clean"]
+log-level = "WARN"

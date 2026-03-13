@@ -185,6 +185,25 @@ You will need:
   - `open.spotify.com` (via the `syncify` library)
   - `youtube.com` and `ytimg.com`
 
+### Building a standalone executable
+
+You can build a single Windows executable so you can run synciflow without installing Python or dependencies.
+
+1. Install the project and build dependencies (from the repo root):
+  ```bash
+   pip install -e .
+   pip install hatch
+  ```
+2. Build the exe with one command (from the repo root, with your venv activated):
+  ```bash
+   hatch build --target pyinstaller
+   python -m hatch build --target pyinstaller
+  ```
+   If `hatch` is not on your PATH, use:
+3. The executable is written to `dist/synciflow.exe`. Copy it to any Windows machine; external tools (ffmpeg, Chrome) must still be available on that machine as described in **System dependencies** above.
+
+This build produces a Windows exe. Building on Linux or macOS with the same command produces a binary for that OS; PyInstaller does not support cross-compilation.
+
 ---
 
 ## ⚙️ Configuration
