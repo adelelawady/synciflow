@@ -34,6 +34,7 @@ env/
 # PyInstaller
 *.manifest
 *.spec
+!synciflow.spec
 
 # Installer logs
 pip-log.txt

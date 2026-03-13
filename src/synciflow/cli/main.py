@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import sys
 import shutil
 from pathlib import Path
 
@@ -396,4 +396,6 @@ def serve(host: str = "127.0.0.1", port: int = 4359):
 
 
 def run():
+    if len(sys.argv) == 1:
+        sys.argv.append("--help")
     app()
