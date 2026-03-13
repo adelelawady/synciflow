@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "synciflow"
-version = "0.0.1"
+version = "1.2.0"
 description = "Python package for the synciflow project."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -43,9 +43,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-username/synciflow"
-Repository = "https://github.com/your-username/synciflow"
-Issues = "https://github.com/your-username/synciflow/issues"
+Homepage = "https://github.com/adelelawady/synciflow"
+Repository = "https://github.com/adelelawady/synciflow"
+Issues = "https://github.com/adelelawady/synciflow/issues"
 
 [tool.hatch.version]
 path = "src/synciflow/__init__.py"
@@ -56,7 +56,11 @@ include = [
   "/tests",
   "/README.md",
   "/LICENSE",
+  "/src/synciflow/frontend",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/synciflow"]
+include = [
+  "src/synciflow/frontend/**",
+]

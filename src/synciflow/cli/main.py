@@ -387,8 +387,8 @@ def smart():
 
 
 @app.command()
-def serve(host: str = "127.0.0.1", port: int = 8000):
-    """Run the FastAPI server."""
+def serve(host: str = "127.0.0.1", port: int = 4359):
+    """Run the FastAPI server (API + frontend UI)."""
     import uvicorn
 
     api = create_app(Library.create(AppConfig()))

@@ -337,21 +337,36 @@ From there you can:
 - Save tracks or playlists to files/ZIPs
 - Inspect and delete tracks or playlists from the DB
 
-### HTTP API – Development server
+### HTTP API & Frontend UI – Development / Production server
 
-Run the FastAPI app via the CLI:
-
-```bash
-synciflow serve --host 127.0.0.1 --port 8000
-```
-
-Or directly with `uvicorn`:
+Run the combined FastAPI API **and** React frontend UI via the CLI:
 
 ```bash
-uvicorn synciflow.api.server:create_app --factory --host 0.0.0.0 --port 8000
+synciflow serve --host 127.0.0.1 --port 8080
 ```
 
-Once running, the API will be available at `http://127.0.0.1:8000`.
+Then open `http://127.0.0.1:8080` in your browser to access the UI (which talks to the same server for API calls).
+
+You can still run just the FastAPI app directly with `uvicorn` if you prefer:
+
+```bash
+uvicorn synciflow.api.server:create_app --factory --host 0.0.0.0 --port 8080
+```
+
+Once running, the API will be available at `http://127.0.0.1:8080` and, if the frontend build is present, the UI will be served from the same origin.
+
+### Building and packaging the frontend UI
+
+To include the React UI in your installation (wheel / sdist), build it before creating a release:
+
+```bash
+# from the project root
+cd frontend
+npm install
+npm run build
+```
+
+Ensure the built assets are copied or moved into `src/synciflow/frontend` before running a Python build (for example with `hatch build` or `python -m build`). Those assets will then be bundled with the `synciflow` package and served automatically by `synciflow serve` on port 8080.
 
 ---
 

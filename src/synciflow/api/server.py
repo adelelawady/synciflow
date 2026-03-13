@@ -4,11 +4,14 @@ import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
+import importlib.resources as resources
 import re
 import shutil
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -46,6 +49,38 @@ class LoadRequest(BaseModel):
 @dataclass(frozen=True)
 class AppState:
     library: Library
+
+
+def _find_frontend_dir() -> Optional[Path]:
+    """
+    Locate the packaged frontend build directory.
+
+    Preference order:
+    1. Packaged under the installed `synciflow` package as `synciflow/frontend`.
+    2. Repository checkout with `frontend/` at the project root (for development).
+    """
+    # 1) Packaged inside the synciflow package (recommended for production)
+    try:
+        base = resources.files("synciflow") / "frontend"
+        candidate = Path(base)
+        if candidate.is_dir():
+            return candidate
+    except Exception:
+        # Fallbacks are handled below
+        pass
+
+    # 2) Development checkout: look for a top-level `frontend/` directory
+    here = Path(__file__).resolve()
+    project_root_candidates = [
+        here.parent.parent.parent,  # src/synciflow/api/server.py -> project root
+        here.parent.parent,         # src/synciflow/api -> src/synciflow
+    ]
+    for root in project_root_candidates:
+        candidate = root / "frontend"
+        if candidate.is_dir():
+            return candidate
+
+    return None
 
 
 def _run_track_load_job(
@@ -555,6 +590,46 @@ def create_app(library: Library | None = None) -> FastAPI:
         zip_path = build_playlist_zip(library.files, "all-tracks", track_files)
         filename = "all-tracks.zip"
         return FileResponse(path=str(zip_path), media_type="application/zip", filename=filename)
+
+    # --- Frontend static UI (React build) ---
+    frontend_dir = _find_frontend_dir()
+    if frontend_dir is not None:
+        index_file = frontend_dir / "index.html"
+
+        # Serve asset files (JS, CSS, images) from the bundled frontend build.
+        assets_dir = frontend_dir / "assets"
+        if assets_dir.is_dir():
+            app.mount(
+                "/assets",
+                StaticFiles(directory=str(assets_dir)),
+                name="frontend-assets",
+            )
+
+        @app.get("/", include_in_schema=False)
+        async def serve_frontend_root():
+            if not index_file.is_file():
+                raise HTTPException(status_code=500, detail="Frontend index.html not found")
+            return FileResponse(str(index_file), media_type="text/html")
+
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_frontend_spa(full_path: str):
+            """
+            Serve the React single-page app for non-API routes.
+
+            Rules:
+            - If a static asset exists under the frontend directory for the requested path, serve it.
+            - Otherwise, fall back to index.html to let the SPA router handle the route.
+            This catch-all is defined after API routes so it does not interfere with them.
+            """
+            # Try direct file match first (e.g. /favicon.ico, /assets/..., etc.)
+            candidate = frontend_dir / full_path
+            if candidate.is_file():
+                # Let FileResponse infer the correct content type.
+                return FileResponse(str(candidate))
+
+            if not index_file.is_file():
+                raise HTTPException(status_code=500, detail="Frontend index.html not found")
+            return FileResponse(str(index_file), media_type="text/html")
 
     return app
 
