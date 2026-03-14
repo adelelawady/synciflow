@@ -6,12 +6,18 @@
 [Last Commit](https://github.com/adelelawady/synciflow/commits/main)
 [Top Language](https://github.com/adelelawady/synciflow)
 
-Python
-FastAPI
-Typer
-SQLite
-yt-dlp
-Selenium
+[![GitHub stars](https://img.shields.io/github/stars/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
+[![GitHub forks](https://img.shields.io/github/forks/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
+[![GitHub issues](https://img.shields.io/github/issues/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
+[![Repo size](https://img.shields.io/github/repo-size/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
+[![License](https://img.shields.io/github/license/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
+
+[![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-runtime-green?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![Electron](https://img.shields.io/badge/Electron-desktop-blue?style=flat-square&logo=electron)](https://www.electronjs.org/)
+[![Spotify](https://img.shields.io/badge/Spotify-integration-1DB954?style=flat-square&logo=spotify)](https://spotify.com)
+
 
 ---
 
