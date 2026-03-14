@@ -1,26 +1,27 @@
 
 
-<p align="center"> <img src="docs/images/output-onlinepngtools.png" alt="Synciflow Logo" width="150"> </p>
+<p align="center"> <img src="docs/images/output-onlinepngtools.png" alt="Synciflow Logo" width="150"> 
+
+
+</p>
+
 
 # Synciflow
 
-
-[![GitHub stars](https://img.shields.io/github/stars/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
-[![GitHub forks](https://img.shields.io/github/forks/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
-[![GitHub issues](https://img.shields.io/github/issues/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow/issues)
-[![GitHub last commit](https://img.shields.io/github/last-commit/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
-[![Repo size](https://img.shields.io/github/repo-size/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
-[![License](https://img.shields.io/github/license/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
-
+[![GitHub stars](https://img.shields.io/github/stars/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow)
+[![GitHub forks](https://img.shields.io/github/forks/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow)
+[![GitHub issues](https://img.shields.io/github/issues/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow)
+[![Repo size](https://img.shields.io/github/repo-size/adelelawady/synciflow?style=flat-square)](https://github.com/adelelawady/synciflow)
+[![License](https://img.shields.io/github/license/adelelawady/synciflow?style=flat-square)](https://github.com/adelelawady/synciflow)
 [![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat-square&logo=python)](https://www.python.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-runtime-green?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Electron](https://img.shields.io/badge/Electron-desktop-blue?style=flat-square&logo=electron)](https://www.electronjs.org/)
 [![Spotify](https://img.shields.io/badge/Spotify-integration-1DB954?style=flat-square&logo=spotify)](https://spotify.com)
-![PyPI - Downloads](https://img.shields.io/pypi/dd/synciflow)
-![PyPI - Version](https://img.shields.io/pypi/v/synciflow)
-
-
-
+[![PyPI Downloads](https://img.shields.io/pypi/dd/synciflow?style=flat-square)](https://pypi.org/project/synciflow/)
+[![PyPI Version](https://img.shields.io/pypi/v/synciflow?style=flat-square)](https://pypi.org/project/synciflow/)
+[![Standalone Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v2.0/Synciflow.Server.Standalone.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
+[![Installer Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v2.0/Synciflow.Setup.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
 
 ---
 
@@ -46,7 +47,8 @@ With Synciflow you can:
 
 Synciflow is ideal for users who want a **self-hosted music library that mirrors Spotify while keeping full control of their files offline.**
 
-
+[![Standalone Download](https://img.shields.io/badge/Download-Standalone-green?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v2.0/Synciflow.Server.Standalone.exe)
+[![Installer Download](https://img.shields.io/badge/Download-Installer-blue?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v2.0/Synciflow.Setup.exe)
 ## 🖼 Screenshots
 
 ### Web UI (Windows)
@@ -264,16 +266,6 @@ pip install -e .
 # plus system-level tools like ffmpeg and Chrome; see below
 ```
 
-### 4. System dependencies
-
-You will need:
-
-- **ffmpeg** (in your `PATH`)
-- **Google Chrome / Chromium** (for Selenium)
-- Ability to run a **headless Chrome** (X11/Wayland or Windows environment)
-- Network access to:
-  - `open.spotify.com` (via the `syncify` library)
-  - `youtube.com` and `ytimg.com`
 
 <details>
 <summary> Building a standalone executable</summary>
