@@ -224,9 +224,6 @@ Thread-safe event bus: sync code (e.g. background workers) publishes events via 
 
 ## 📦 Installation
 
-> **Note:** The project is laid out as a Python package under `src/synciflow`.  
-> The examples below assume you have cloned the repository locally.
-
 
 
 # Via pip
