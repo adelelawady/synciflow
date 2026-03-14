@@ -504,23 +504,47 @@ synciflow/
 
 ## 🖼 Screenshots
 
-> Place your screenshots under `docs/images/` (or similar) to match the paths below.
+### Console (CLI)
 
-1. **Smart CLI main menu**
-  ```markdown
-   ![Screenshot 1 – Smart CLI](docs/images/screenshot-1-smart-cli.png)
-  ```
-   Shows the interactive `synciflow smart` main menu with options to load tracks/playlists, list content, and export.
-2. **Track list view**
-  ```markdown
-   ![Screenshot 2 – Track List](docs/images/screenshot-2-track-list.png)
-  ```
-   Displays a `rich` table of tracks with IDs, titles, artists, and whether audio is present.
-3. **Playlist ZIP export**
-  ```markdown
-   ![Screenshot 3 – Playlist Export](docs/images/screenshot-3-playlist-zip.png)
-  ```
-   Illustrates a successful export of a playlist to a ZIP file and the ZIP contents in a file explorer.
+<table>
+<tr>
+<td><img src="docs/images/Application%20Console%20Cli%20View%20help.png" width="480" alt="CLI help view" title="CLI help view" /></td>
+<td><img src="docs/images/Application%20Console%20Smart%20Cli%20View.png" width="480" alt="Smart CLI main view" title="Smart CLI main view" /></td>
+</tr>
+<tr>
+<td align="center"><em>CLI help view</em></td>
+<td align="center"><em>Smart CLI main view</em></td>
+</tr>
+<tr>
+<td><img src="docs/images/Application%20Console%20Smart%20Cli%20Use%20View.png" width="480" alt="Smart CLI use view" title="Smart CLI use view" /></td>
+<td><img src="docs/images/Application%20Console%20Serve%20Api%20View.png" width="480" alt="Serve API view" title="Serve API view" /></td>
+</tr>
+<tr>
+<td align="center"><em>Smart CLI use view</em></td>
+<td align="center"><em>Serve API view</em></td>
+</tr>
+</table>
+
+### Web UI (Windows)
+
+<table>
+<tr>
+<td><img src="docs/images/Application%20Ui%20Windows%20You%20Library.png" width="480" alt="Your library" title="Your library" /></td>
+<td><img src="docs/images/Application%20Ui%20Windows%20Likes%20List.png" width="480" alt="Likes list" title="Likes list" /></td>
+</tr>
+<tr>
+<td align="center"><em>Your library</em></td>
+<td align="center"><em>Likes list</em></td>
+</tr>
+<tr>
+<td><img src="docs/images/Application%20Ui%20Windows%20View%20Playlist.png" width="480" alt="View playlist" title="View playlist" /></td>
+<td><img src="docs/images/Application%20Ui%20Windows%20Playlist%20Page%20View.png" width="480" alt="Playlist page view" title="Playlist page view" /></td>
+</tr>
+<tr>
+<td align="center"><em>View playlist</em></td>
+<td align="center"><em>Playlist page view</em></td>
+</tr>
+</table>
 
 ---
 
