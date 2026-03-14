@@ -1,7 +1,8 @@
+
+
+<p align="center"> <img src="docs/images/output-onlinepngtools.png" alt="Synciflow Logo" width="150"> </p>
+
 # Synciflow
-
-<p align="center"> <img src="https://github.com/user-attachments/assets/5f3a8e1f-c2e3-4c85-b8dc-a1f2f3b5e6d7" alt="Synciflow Logo" width="150"> </p>
-
 
 
 [![GitHub stars](https://img.shields.io/github/stars/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
@@ -23,16 +24,27 @@
 
 ---
 
+<a href="https://adelelawady.github.io/synciflow/" target="_blank" rel="noopener noreferrer" 
+   style="display:inline-block;padding:10px 20px;font-weight:bold;color:white;background-color:#1DB954;border-radius:6px;text-decoration:none;">
+  🌐 Visit Synciflow Web
+</a>
 
+Synciflow is an **offline-first music sync and download platform** that lets you **save and manage Spotify content locally** through multiple interfaces:
 
-**synciflow** is an offline-first music library and sync tool that lets you:
+• **Web** – browser-based interface for managing and syncing music  
+• **Desktop** – standalone app for local music workflows  
+• **API** – FastAPI backend for automation and integrations  
+• **CLI** – powerful command-line tools for advanced control
 
-- Ingest tracks and playlists from **Spotify URLs**
-- Resolve and download high‑quality audio via **YouTube**
-- Store everything locally in a structured **SQLite + filesystem** library
-- Interact through a **rich TUI-like CLI** and a **FastAPI HTTP API**
+With Synciflow you can:
 
-Ideal for building a private, self‑hosted music collection that mirrors your Spotify playlists, with full control over files on disk.
+- Import **tracks, albums, and playlists from Spotify URLs**
+- Automatically **resolve and download high-quality audio via YouTube**
+- Build a **local music library stored in SQLite + filesystem**
+- **Sync and mirror Spotify playlists locally**
+- Access everything through **Web UI, Desktop app, API, or CLI**
+
+Synciflow is ideal for users who want a **self-hosted music library that mirrors Spotify while keeping full control of their files offline.**
 
 
 ## 🖼 Screenshots
