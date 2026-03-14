@@ -6,6 +6,11 @@
 [Last Commit](https://github.com/adelelawady/synciflow/commits/main)
 [Top Language](https://github.com/adelelawady/synciflow)
 
+
+<p align="center"> <img src="https://github.com/user-attachments/assets/876170d2-523c-4045-b4c9-67ac957e46c1" alt="Clipify Logo" width="150"> </p>
+
+
+
 [![GitHub stars](https://img.shields.io/github/stars/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
 [![GitHub forks](https://img.shields.io/github/forks/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow)
 [![GitHub issues](https://img.shields.io/github/issues/adelelawady/synciflow?style=for-the-badge)](https://github.com/adelelawady/synciflow/issues)
@@ -33,8 +38,9 @@
 Ideal for building a private, self‑hosted music collection that mirrors your Spotify playlists, with full control over files on disk.
 
 ---
+<details>
+<summary>✨ Features</summary>
 
-## ✨ Features
 
 - **Offline library from Spotify URLs**  
   - Load individual tracks or entire playlists by Spotify URL.
@@ -70,7 +76,9 @@ Ideal for building a private, self‑hosted music collection that mirrors your S
 
 ---
 
-## 🧠 How It Works
+</details>
+<details>
+<summary>🧠 How It Works</summary>
 
 At a high level:
 
@@ -123,6 +131,9 @@ Thread-safe event bus: sync code (e.g. background workers) publishes events via 
 
 ---
 
+</details>
+
+  
 ## 🛠 Tech Stack
 
 - **Language**: Python 3.10+
