@@ -1,13 +1,6 @@
-[GitHub Stars](https://github.com/adelelawady/synciflow/stargazers)
-[GitHub Forks](https://github.com/adelelawady/synciflow/network/members)
-[GitHub Issues](https://github.com/adelelawady/synciflow/issues)
-[GitHub License](LICENSE)
-[Repo Size](https://github.com/adelelawady/synciflow)
-[Last Commit](https://github.com/adelelawady/synciflow/commits/main)
-[Top Language](https://github.com/adelelawady/synciflow)
+# Synciflow
 
-
-<p align="center"> <img src="https://github.com/user-attachments/assets/876170d2-523c-4045-b4c9-67ac957e46c1" alt="Clipify Logo" width="150"> </p>
+<p align="center"> <img src="https://github.com/user-attachments/assets/5f3a8e1f-c2e3-4c85-b8dc-a1f2f3b5e6d7" alt="Synciflow Logo" width="150"> </p>
 
 
 
@@ -22,11 +15,15 @@
 [![Node.js](https://img.shields.io/badge/Node.js-runtime-green?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Electron](https://img.shields.io/badge/Electron-desktop-blue?style=flat-square&logo=electron)](https://www.electronjs.org/)
 [![Spotify](https://img.shields.io/badge/Spotify-integration-1DB954?style=flat-square&logo=spotify)](https://spotify.com)
+![PyPI - Downloads](https://img.shields.io/pypi/dd/synciflow)
+![PyPI - Version](https://img.shields.io/pypi/v/synciflow)
+
+
 
 
 ---
 
-## 🚀 synciflow
+
 
 **synciflow** is an offline-first music library and sync tool that lets you:
 
@@ -36,6 +33,57 @@
 - Interact through a **rich TUI-like CLI** and a **FastAPI HTTP API**
 
 Ideal for building a private, self‑hosted music collection that mirrors your Spotify playlists, with full control over files on disk.
+
+
+## 🖼 Screenshots
+
+### Web UI (Windows)
+
+<table>
+<tr>
+<td><img src="docs/images/Application%20Ui%20Windows%20You%20Library.png" width="480" alt="Your library" title="Your library" /></td>
+<td><img src="docs/images/Application%20Ui%20Windows%20Likes%20List.png" width="480" alt="Likes list" title="Likes list" /></td>
+</tr>
+<tr>
+<td align="center"><em>Your library</em></td>
+<td align="center"><em>Likes list</em></td>
+</tr>
+<tr>
+<td><img src="docs/images/Application%20Ui%20Windows%20View%20Playlist.png" width="480" alt="View playlist" title="View playlist" /></td>
+<td><img src="docs/images/Application%20Ui%20Windows%20Playlist%20Page%20View.png" width="480" alt="Playlist page view" title="Playlist page view" /></td>
+</tr>
+<tr>
+<td align="center"><em>View playlist</em></td>
+<td align="center"><em>Playlist page view</em></td>
+</tr>
+</table>
+
+### Console (CLI)
+
+<table>
+<tr>
+<td><img src="docs/images/Application%20Console%20Cli%20View%20help.png" width="480" alt="CLI help view" title="CLI help view" /></td>
+<td><img src="docs/images/Application%20Console%20Smart%20Cli%20View.png" width="480" alt="Smart CLI main view" title="Smart CLI main view" /></td>
+</tr>
+<tr>
+<td align="center"><em>CLI help view</em></td>
+<td align="center"><em>Smart CLI main view</em></td>
+</tr>
+<tr>
+<td><img src="docs/images/Application%20Console%20Smart%20Cli%20Use%20View.png" width="480" alt="Smart CLI use view" title="Smart CLI use view" /></td>
+<td><img src="docs/images/Application%20Console%20Serve%20Api%20View.png" width="480" alt="Serve API view" title="Serve API view" /></td>
+</tr>
+<tr>
+<td align="center"><em>Smart CLI use view</em></td>
+<td align="center"><em>Serve API view</em></td>
+</tr>
+</table>
+
+
+
+---
+
+
 
 ---
 <details>
@@ -128,13 +176,17 @@ FastAPI app with endpoints for loading, listing, streaming, and exporting.
 Creates and updates jobs (pending → running → completed/failed) in the `jobs` table. Used by the API to return a `job_id` immediately and run work in a background thread.
 - **Notification bus**: `core/notification_bus.py`  
 Thread-safe event bus: sync code (e.g. background workers) publishes events via `publish_sync()`; a bridge task forwards them to async subscribers. WebSocket clients subscribe to receive real-time events (e.g. `PLAYLIST_PROGRESS`, `TRACK_DOWNLOAD_COMPLETED`, `ERROR`).
-
 ---
 
 </details>
 
-  
-## 🛠 Tech Stack
+  <details>
+<summary>🛠 Tech Stack</summary>
+
+
+
+
+
 
 - **Language**: Python 3.10+
 - **Runtime & tooling**:
@@ -154,10 +206,19 @@ Thread-safe event bus: sync code (e.g. background workers) publishes events via 
 
 ---
 
+  </details>
+
 ## 📦 Installation
 
 > **Note:** The project is laid out as a Python package under `src/synciflow`.  
 > The examples below assume you have cloned the repository locally.
+
+
+
+# Via pip
+```bash
+pip install synciflow
+```
 
 ### 1. Clone the repository
 
@@ -202,7 +263,9 @@ You will need:
   - `open.spotify.com` (via the `syncify` library)
   - `youtube.com` and `ytimg.com`
 
-### Building a standalone executable
+<details>
+<summary> Building a standalone executable</summary>
+
 
 You can build a single Windows executable so you can run synciflow without installing Python or dependencies.
 
@@ -219,6 +282,9 @@ You can build a single Windows executable so you can run synciflow without insta
 3. The executable is written to `dist/synciflow.exe`. Copy it to any Windows machine; external tools (ffmpeg, Chrome) must still be available on that machine as described in **System dependencies** above.
 
 This build produces a Windows exe. Building on Linux or macOS with the same command produces a binary for that OS; PyInstaller does not support cross-compilation.
+
+
+</details>
 
 ---
 
@@ -253,20 +319,6 @@ from synciflow.config import AppConfig
 lib = Library.create(AppConfig(storage_root=Path("/my/music"), data_root=Path("/my/db")))
 ```
 
-### Environment variables
-
-synciflow itself does **not** hard‑code environment variables, but its dependencies may require them (e.g. `syncify` for Spotify credentials). A typical setup might include:
-
-
-| Variable            | Required | Description                                  |
-| ------------------- | -------- | -------------------------------------------- |
-| `SPOTIFY_CLIENT_ID` | Maybe    | Used by the `syncify` library (if required). |
-| `SPOTIFY_SECRET`    | Maybe    | Used by the `syncify` library (if required). |
-
-
-Refer to the `syncify` project documentation for exact Spotify configuration requirements.
-
----
 
 ## 🚀 Usage
 
@@ -519,51 +571,6 @@ synciflow/
 
 ---
 
-## 🖼 Screenshots
-
-### Console (CLI)
-
-<table>
-<tr>
-<td><img src="docs/images/Application%20Console%20Cli%20View%20help.png" width="480" alt="CLI help view" title="CLI help view" /></td>
-<td><img src="docs/images/Application%20Console%20Smart%20Cli%20View.png" width="480" alt="Smart CLI main view" title="Smart CLI main view" /></td>
-</tr>
-<tr>
-<td align="center"><em>CLI help view</em></td>
-<td align="center"><em>Smart CLI main view</em></td>
-</tr>
-<tr>
-<td><img src="docs/images/Application%20Console%20Smart%20Cli%20Use%20View.png" width="480" alt="Smart CLI use view" title="Smart CLI use view" /></td>
-<td><img src="docs/images/Application%20Console%20Serve%20Api%20View.png" width="480" alt="Serve API view" title="Serve API view" /></td>
-</tr>
-<tr>
-<td align="center"><em>Smart CLI use view</em></td>
-<td align="center"><em>Serve API view</em></td>
-</tr>
-</table>
-
-### Web UI (Windows)
-
-<table>
-<tr>
-<td><img src="docs/images/Application%20Ui%20Windows%20You%20Library.png" width="480" alt="Your library" title="Your library" /></td>
-<td><img src="docs/images/Application%20Ui%20Windows%20Likes%20List.png" width="480" alt="Likes list" title="Likes list" /></td>
-</tr>
-<tr>
-<td align="center"><em>Your library</em></td>
-<td align="center"><em>Likes list</em></td>
-</tr>
-<tr>
-<td><img src="docs/images/Application%20Ui%20Windows%20View%20Playlist.png" width="480" alt="View playlist" title="View playlist" /></td>
-<td><img src="docs/images/Application%20Ui%20Windows%20Playlist%20Page%20View.png" width="480" alt="Playlist page view" title="Playlist page view" /></td>
-</tr>
-<tr>
-<td align="center"><em>View playlist</em></td>
-<td align="center"><em>Playlist page view</em></td>
-</tr>
-</table>
-
----
 
 ## 🧪 Development
 
