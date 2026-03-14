@@ -196,8 +196,7 @@ You can build a single Windows executable so you can run synciflow without insta
   ```
 2. Build the exe with one command (from the repo root, with your venv activated):
   ```bash
-   hatch build --target pyinstaller
-   python -m hatch build --target pyinstaller
+  python -m hatch build --target pyinstaller
   ```
    If `hatch` is not on your PATH, use:
 3. The executable is written to `dist/synciflow.exe`. Copy it to any Windows machine; external tools (ffmpeg, Chrome) must still be available on that machine as described in **System dependencies** above.

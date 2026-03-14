@@ -16,7 +16,7 @@ from synciflow.services.tagging import ensure_cover_art
 from synciflow.storage.path_manager import ensure_parent_dir
 from synciflow.storage.zip_builder import build_playlist_zip
 
-from .smart import run as run_smart_cli
+from .smart import _print_header, run as run_smart_cli
 
 
 app = typer.Typer(add_completion=False)
@@ -391,6 +391,7 @@ def serve(host: str = "127.0.0.1", port: int = 4359):
     """Run the FastAPI server (API + frontend UI)."""
     import uvicorn
 
+    _print_header()
     api = create_app(Library.create(AppConfig()))
     uvicorn.run(api, host=host, port=port)
 
