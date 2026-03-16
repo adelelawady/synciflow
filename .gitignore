@@ -81,3 +81,7 @@ downloads/
 # Storage
 storage_data/
 data/
+
+
+# node_modules
+node_modules/
