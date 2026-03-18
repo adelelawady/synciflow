@@ -20,7 +20,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "synciflow"
-version = "2.0.0"
+version = "3.0.0"
 description = "Python package for the synciflow project."
 readme = "README.md"
 requires-python = ">=3.9"
