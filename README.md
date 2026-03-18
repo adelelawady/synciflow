@@ -1,34 +1,108 @@
-[GitHub Stars](https://github.com/adelelawady/synciflow/stargazers)
-[GitHub Forks](https://github.com/adelelawady/synciflow/network/members)
-[GitHub Issues](https://github.com/adelelawady/synciflow/issues)
-[GitHub License](LICENSE)
-[Repo Size](https://github.com/adelelawady/synciflow)
-[Last Commit](https://github.com/adelelawady/synciflow/commits/main)
-[Top Language](https://github.com/adelelawady/synciflow)
 
-Python
-FastAPI
-Typer
-SQLite
-yt-dlp
-Selenium
 
----
+<p align="center"> <img src="docs/images/output-onlinepngtools.png" alt="Synciflow Logo" width="150"> 
 
-## 🚀 synciflow
 
-**synciflow** is an offline-first music library and sync tool that lets you:
+</p>
 
-- Ingest tracks and playlists from **Spotify URLs**
-- Resolve and download high‑quality audio via **YouTube**
-- Store everything locally in a structured **SQLite + filesystem** library
-- Interact through a **rich TUI-like CLI** and a **FastAPI HTTP API**
 
-Ideal for building a private, self‑hosted music collection that mirrors your Spotify playlists, with full control over files on disk.
+# Synciflow
+
+[![GitHub stars](https://img.shields.io/github/stars/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow)
+[![GitHub forks](https://img.shields.io/github/forks/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow)
+[![GitHub issues](https://img.shields.io/github/issues/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/adelelawady/synciflow?style=flat-square&logo=github)](https://github.com/adelelawady/synciflow)
+[![Repo size](https://img.shields.io/github/repo-size/adelelawady/synciflow?style=flat-square)](https://github.com/adelelawady/synciflow)
+[![License](https://img.shields.io/github/license/adelelawady/synciflow?style=flat-square)](https://github.com/adelelawady/synciflow)
+[![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-runtime-green?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![Electron](https://img.shields.io/badge/Electron-desktop-blue?style=flat-square&logo=electron)](https://www.electronjs.org/)
+[![Spotify](https://img.shields.io/badge/Spotify-integration-1DB954?style=flat-square&logo=spotify)](https://spotify.com)
+[![PyPI Downloads](https://img.shields.io/pypi/dd/synciflow?style=flat-square)](https://pypi.org/project/synciflow/)
+[![PyPI Version](https://img.shields.io/pypi/v/synciflow?style=flat-square)](https://pypi.org/project/synciflow/)
+[![Standalone Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v2.0/Synciflow.Server.Standalone.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
+[![Installer Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v2.0/Synciflow.Setup.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
 
 ---
 
-## ✨ Features
+<a href="https://adelelawady.github.io/synciflow/" target="_blank" rel="noopener noreferrer" 
+   style="display:inline-block;padding:10px 20px;font-weight:bold;color:white;background-color:#1DB954;border-radius:6px;text-decoration:none;">
+  🌐 Visit Synciflow Web
+</a>
+
+Synciflow is an **offline-first music sync and download platform** that lets you **save and manage Spotify content locally** through multiple interfaces:
+
+• **Web** – browser-based interface for managing and syncing music  
+• **Desktop** – standalone app for local music workflows  
+• **API** – FastAPI backend for automation and integrations  
+• **CLI** – powerful command-line tools for advanced control
+
+With Synciflow you can:
+
+- Import **tracks, albums, and playlists from Spotify URLs**
+- Automatically **resolve and download high-quality audio via YouTube**
+- Build a **local music library stored in SQLite + filesystem**
+- **Sync and mirror Spotify playlists locally**
+- Access everything through **Web UI, Desktop app, API, or CLI**
+
+Synciflow is ideal for users who want a **self-hosted music library that mirrors Spotify while keeping full control of their files offline.**
+
+[![Standalone Download](https://img.shields.io/badge/Download-Standalone-green?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v2.0/Synciflow.Server.Standalone.exe)
+[![Installer Download](https://img.shields.io/badge/Download-Installer-blue?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v2.0/Synciflow.Setup.exe)
+## 🖼 Screenshots
+
+### Web UI (Windows)
+
+<table>
+<tr>
+<td><img src="docs/images/Application%20Ui%20Windows%20You%20Library.png" width="480" alt="Your library" title="Your library" /></td>
+<td><img src="docs/images/Application%20Ui%20Windows%20Likes%20List.png" width="480" alt="Likes list" title="Likes list" /></td>
+</tr>
+<tr>
+<td align="center"><em>Your library</em></td>
+<td align="center"><em>Likes list</em></td>
+</tr>
+<tr>
+<td><img src="docs/images/Application%20Ui%20Windows%20View%20Playlist.png" width="480" alt="View playlist" title="View playlist" /></td>
+<td><img src="docs/images/Application%20Ui%20Windows%20Playlist%20Page%20View.png" width="480" alt="Playlist page view" title="Playlist page view" /></td>
+</tr>
+<tr>
+<td align="center"><em>View playlist</em></td>
+<td align="center"><em>Playlist page view</em></td>
+</tr>
+</table>
+
+### Console (CLI)
+
+<table>
+<tr>
+<td><img src="docs/images/Application%20Console%20Cli%20View%20help.png" width="480" alt="CLI help view" title="CLI help view" /></td>
+<td><img src="docs/images/Application%20Console%20Smart%20Cli%20View.png" width="480" alt="Smart CLI main view" title="Smart CLI main view" /></td>
+</tr>
+<tr>
+<td align="center"><em>CLI help view</em></td>
+<td align="center"><em>Smart CLI main view</em></td>
+</tr>
+<tr>
+<td><img src="docs/images/Application%20Console%20Smart%20Cli%20Use%20View.png" width="480" alt="Smart CLI use view" title="Smart CLI use view" /></td>
+<td><img src="docs/images/Application%20Console%20Serve%20Api%20View.png" width="480" alt="Serve API view" title="Serve API view" /></td>
+</tr>
+<tr>
+<td align="center"><em>Smart CLI use view</em></td>
+<td align="center"><em>Serve API view</em></td>
+</tr>
+</table>
+
+
+
+---
+
+
+
+---
+<details>
+<summary>✨ Features</summary>
+
 
 - **Offline library from Spotify URLs**  
   - Load individual tracks or entire playlists by Spotify URL.
@@ -64,7 +138,9 @@ Ideal for building a private, self‑hosted music collection that mirrors your S
 
 ---
 
-## 🧠 How It Works
+</details>
+<details>
+<summary>🧠 How It Works</summary>
 
 At a high level:
 
@@ -114,10 +190,17 @@ FastAPI app with endpoints for loading, listing, streaming, and exporting.
 Creates and updates jobs (pending → running → completed/failed) in the `jobs` table. Used by the API to return a `job_id` immediately and run work in a background thread.
 - **Notification bus**: `core/notification_bus.py`  
 Thread-safe event bus: sync code (e.g. background workers) publishes events via `publish_sync()`; a bridge task forwards them to async subscribers. WebSocket clients subscribe to receive real-time events (e.g. `PLAYLIST_PROGRESS`, `TRACK_DOWNLOAD_COMPLETED`, `ERROR`).
-
 ---
 
-## 🛠 Tech Stack
+</details>
+
+  <details>
+<summary>🛠 Tech Stack</summary>
+
+
+
+
+
 
 - **Language**: Python 3.10+
 - **Runtime & tooling**:
@@ -137,10 +220,16 @@ Thread-safe event bus: sync code (e.g. background workers) publishes events via 
 
 ---
 
+  </details>
+
 ## 📦 Installation
 
-> **Note:** The project is laid out as a Python package under `src/synciflow`.  
-> The examples below assume you have cloned the repository locally.
+
+
+# Via pip
+```bash
+pip install synciflow
+```
 
 ### 1. Clone the repository
 
@@ -174,18 +263,10 @@ pip install -e .
 # plus system-level tools like ffmpeg and Chrome; see below
 ```
 
-### 4. System dependencies
 
-You will need:
+<details>
+<summary> Building a standalone executable</summary>
 
-- **ffmpeg** (in your `PATH`)
-- **Google Chrome / Chromium** (for Selenium)
-- Ability to run a **headless Chrome** (X11/Wayland or Windows environment)
-- Network access to:
-  - `open.spotify.com` (via the `syncify` library)
-  - `youtube.com` and `ytimg.com`
-
-### Building a standalone executable
 
 You can build a single Windows executable so you can run synciflow without installing Python or dependencies.
 
@@ -202,6 +283,9 @@ You can build a single Windows executable so you can run synciflow without insta
 3. The executable is written to `dist/synciflow.exe`. Copy it to any Windows machine; external tools (ffmpeg, Chrome) must still be available on that machine as described in **System dependencies** above.
 
 This build produces a Windows exe. Building on Linux or macOS with the same command produces a binary for that OS; PyInstaller does not support cross-compilation.
+
+
+</details>
 
 ---
 
@@ -236,20 +320,6 @@ from synciflow.config import AppConfig
 lib = Library.create(AppConfig(storage_root=Path("/my/music"), data_root=Path("/my/db")))
 ```
 
-### Environment variables
-
-synciflow itself does **not** hard‑code environment variables, but its dependencies may require them (e.g. `syncify` for Spotify credentials). A typical setup might include:
-
-
-| Variable            | Required | Description                                  |
-| ------------------- | -------- | -------------------------------------------- |
-| `SPOTIFY_CLIENT_ID` | Maybe    | Used by the `syncify` library (if required). |
-| `SPOTIFY_SECRET`    | Maybe    | Used by the `syncify` library (if required). |
-
-
-Refer to the `syncify` project documentation for exact Spotify configuration requirements.
-
----
 
 ## 🚀 Usage
 
@@ -502,51 +572,6 @@ synciflow/
 
 ---
 
-## 🖼 Screenshots
-
-### Console (CLI)
-
-<table>
-<tr>
-<td><img src="docs/images/Application%20Console%20Cli%20View%20help.png" width="480" alt="CLI help view" title="CLI help view" /></td>
-<td><img src="docs/images/Application%20Console%20Smart%20Cli%20View.png" width="480" alt="Smart CLI main view" title="Smart CLI main view" /></td>
-</tr>
-<tr>
-<td align="center"><em>CLI help view</em></td>
-<td align="center"><em>Smart CLI main view</em></td>
-</tr>
-<tr>
-<td><img src="docs/images/Application%20Console%20Smart%20Cli%20Use%20View.png" width="480" alt="Smart CLI use view" title="Smart CLI use view" /></td>
-<td><img src="docs/images/Application%20Console%20Serve%20Api%20View.png" width="480" alt="Serve API view" title="Serve API view" /></td>
-</tr>
-<tr>
-<td align="center"><em>Smart CLI use view</em></td>
-<td align="center"><em>Serve API view</em></td>
-</tr>
-</table>
-
-### Web UI (Windows)
-
-<table>
-<tr>
-<td><img src="docs/images/Application%20Ui%20Windows%20You%20Library.png" width="480" alt="Your library" title="Your library" /></td>
-<td><img src="docs/images/Application%20Ui%20Windows%20Likes%20List.png" width="480" alt="Likes list" title="Likes list" /></td>
-</tr>
-<tr>
-<td align="center"><em>Your library</em></td>
-<td align="center"><em>Likes list</em></td>
-</tr>
-<tr>
-<td><img src="docs/images/Application%20Ui%20Windows%20View%20Playlist.png" width="480" alt="View playlist" title="View playlist" /></td>
-<td><img src="docs/images/Application%20Ui%20Windows%20Playlist%20Page%20View.png" width="480" alt="Playlist page view" title="Playlist page view" /></td>
-</tr>
-<tr>
-<td align="center"><em>View playlist</em></td>
-<td align="center"><em>Playlist page view</em></td>
-</tr>
-</table>
-
----
 
 ## 🧪 Development
 
