@@ -46,6 +46,8 @@ class TrackManager:
                 track_title=details.track_title,
                 artist_title=details.artist_title,
                 track_image_url=details.track_image_url,
+                duration_ms=details.duration_ms,
+                duration_str=details.duration_str,
             )
             self.session.add(existing)
             self.session.commit()
@@ -129,6 +131,8 @@ class TrackManager:
                 track_title="",
                 artist_title="",
                 track_image_url="",
+                duration_ms=0,
+                duration_str="",
                 audio_path=str(audio_path),
                 downloaded_at=datetime.now(timezone.utc),
             )

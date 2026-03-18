@@ -16,6 +16,8 @@ class Track(SQLModel, table=True):
     track_title: str = ""
     artist_title: str = ""
     track_image_url: str = ""
+    duration_ms: int = Field(default=0, nullable=False)
+    duration_str: str = Field(default="", nullable=False)
     audio_path: str = ""
 
     created_at: datetime = Field(default_factory=utcnow, nullable=False)

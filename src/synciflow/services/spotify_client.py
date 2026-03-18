@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Set
 
 #from synciflow.core.utils import LIKES_PLAYLIST_ID
 from synciflow.schemas.playlist import PlaylistDetails
-from synciflow.schemas.track import TrackDetails
+from synciflow.schemas.track import TrackDetails, _ms_to_duration_str
 
 from spotapi.playlist import PublicPlaylist
 from spotapi.song import Song
@@ -88,8 +88,6 @@ def _extract_track_image_url(track: Dict[str, Any]) -> str:
 
 
 def get_track_details(spotify_track_url: str) -> TrackDetails:
-    """Fetch Spotify track metadata using spotapi."""
-
     track_id = _extract_spotify_id(spotify_track_url, "track")
     if not track_id:
         raise ValueError(f"Could not extract track id from '{spotify_track_url}'")
@@ -108,12 +106,19 @@ def get_track_details(spotify_track_url: str) -> TrackDetails:
         or spotify_track_url
     )
 
+    # Duration lives at trackUnion.duration.totalMilliseconds
+    duration_ms = int(
+        (track.get("duration") or {}).get("totalMilliseconds") or 0
+    )
+
     return TrackDetails(
         spotify_url=str(spotify_url or ""),
         track_id=str(track.get("id") or track_id or ""),
         track_title=str(track.get("name") or ""),
         artist_title=_extract_track_artist(track),
         track_image_url=_extract_track_image_url(track),
+        duration_ms=duration_ms,
+        duration_str=_ms_to_duration_str(duration_ms),
     )
 
 
