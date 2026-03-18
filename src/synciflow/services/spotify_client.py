@@ -1,43 +1,183 @@
 from __future__ import annotations
 
-from synciflow.core.utils import LIKES_PLAYLIST_ID
+import re
+from typing import Any, Dict, List, Optional, Set
+
+#from synciflow.core.utils import LIKES_PLAYLIST_ID
 from synciflow.schemas.playlist import PlaylistDetails
 from synciflow.schemas.track import TrackDetails
 
+from spotapi.playlist import PublicPlaylist
+from spotapi.song import Song
+
+_SPOTIFY_TRACK_RE = re.compile(r"(?:spotify:track:|/track/)([A-Za-z0-9]+)")
+_SPOTIFY_PLAYLIST_RE = re.compile(r"(?:spotify:playlist:|/playlist/)([A-Za-z0-9]+)")
+
+
+def _extract_spotify_id(url: str, kind: str) -> str:
+    if not url:
+        return ""
+
+    if kind == "track":
+        m = _SPOTIFY_TRACK_RE.search(url)
+    else:
+        m = _SPOTIFY_PLAYLIST_RE.search(url)
+
+    if not m:
+        return ""
+
+    return m.group(1) or ""
+
+
+def _make_spotify_track_url(track_id: str) -> str:
+    if not track_id:
+        return ""
+    return f"https://open.spotify.com/track/{track_id}"
+
+
+def _extract_track_artist(track: Dict[str, Any]) -> str:
+    first_artist = track.get("firstArtist") or {}
+    if isinstance(first_artist, dict):
+        items = first_artist.get("items") or []
+        if items and isinstance(items[0], dict):
+            profile = items[0].get("profile") or {}
+            name = profile.get("name")
+            if name:
+                return str(name)
+
+    other_artists = track.get("otherArtists") or {}
+    if isinstance(other_artists, dict):
+        items = other_artists.get("items") or []
+        if items and isinstance(items[0], dict):
+            profile = items[0].get("profile") or {}
+            name = profile.get("name")
+            if name:
+                return str(name)
+
+    return ""
+
+
+def _extract_track_image_url(track: Dict[str, Any]) -> str:
+    # Prefer album cover art
+    album = track.get("albumOfTrack") or {}
+    if isinstance(album, dict):
+        cover_art = album.get("coverArt") or {}
+        if isinstance(cover_art, dict):
+            sources = cover_art.get("sources") or []
+            if isinstance(sources, list) and sources:
+                first = sources[0]
+                if isinstance(first, dict):
+                    url = first.get("url")
+                    if url:
+                        return str(url)
+
+    # Fallback to track visual identity
+    visual = track.get("visualIdentity") or {}
+    if isinstance(visual, dict):
+        square = visual.get("squareCoverImage") or {}
+        if isinstance(square, dict):
+            sources = square.get("sources") or []
+            if isinstance(sources, list) and sources:
+                first = sources[0]
+                if isinstance(first, dict):
+                    url = first.get("url")
+                    if url:
+                        return str(url)
+
+    return ""
+
 
 def get_track_details(spotify_track_url: str) -> TrackDetails:
-    """
-    Thin adapter around `syncify.get_track`.
+    """Fetch Spotify track metadata using spotapi."""
 
-    Kept as a function so tests can easily monkeypatch it without needing
-    to import heavy dependencies in core modules.
-    """
-    from syncify import get_track  # imported lazily
+    track_id = _extract_spotify_id(spotify_track_url, "track")
+    if not track_id:
+        raise ValueError(f"Could not extract track id from '{spotify_track_url}'")
 
-    t = get_track(spotify_track_url)
-    return TrackDetails(
-        spotify_url=getattr(t, "spotify_url", spotify_track_url) or spotify_track_url,
-        track_id=getattr(t, "track_id", "") or "",
-        track_title=getattr(t, "track_title", "") or "",
-        artist_title=getattr(t, "artist_title", "") or "",
-        track_image_url=getattr(t, "track_image_url", "") or "",
+    try:
+        song = Song()
+        resp = song.get_track_info(track_id)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to load Spotify track details: {exc}") from exc
+
+    track = (resp.get("data", {}) or {}).get("trackUnion", {}) or {}
+
+    spotify_url = (
+        track.get("sharingInfo", {}).get("shareUrl")
+        or _make_spotify_track_url(track.get("uri") or track.get("id") or track_id)
+        or spotify_track_url
     )
+
+    return TrackDetails(
+        spotify_url=str(spotify_url or ""),
+        track_id=str(track.get("id") or track_id or ""),
+        track_title=str(track.get("name") or ""),
+        artist_title=_extract_track_artist(track),
+        track_image_url=_extract_track_image_url(track),
+    )
+
+
+def _extract_playlist_image_url(playlist_data: Dict[str, Any]) -> str:
+    if not isinstance(playlist_data, dict):
+        return ""
+
+    images = playlist_data.get("images") or {}
+    if isinstance(images, dict):
+        items = images.get("items") or []
+        if isinstance(items, list) and items:
+            first = items[0]
+            if isinstance(first, dict):
+                sources = first.get("sources") or []
+                if isinstance(sources, list) and sources:
+                    first_src = sources[0]
+                    if isinstance(first_src, dict):
+                        return str(first_src.get("url") or "")
+
+    return ""
 
 
 def get_playlist_details(spotify_playlist_url: str) -> PlaylistDetails:
-    """
-    Thin adapter around `syncify.get_playlist`.
-    """
-    from syncify import get_playlist  # imported lazily
+    """Fetch Spotify playlist metadata using spotapi."""
 
-    p = get_playlist(spotify_playlist_url)
+    playlist_id = _extract_spotify_id(spotify_playlist_url, "playlist")
+
+    try:
+        playlist = PublicPlaylist(spotify_playlist_url)
+        info = playlist.get_playlist_info(limit=100)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to load Spotify playlist details: {exc}") from exc
+
+    playlist_data = (info.get("data", {}) or {}).get("playlistV2", {}) or {}
+    title = str(playlist_data.get("name") or "")
+    image_url = _extract_playlist_image_url(playlist_data)
+
+    track_urls: List[str] = []
+    try:
+        for chunk in playlist.paginate_playlist():
+            items = chunk.get("items") or []
+            for item in items:
+                track = (item.get("itemV2", {}) or {}).get("data", {}) or {}
+                uri = track.get("uri") or track.get("id") or ""
+                if not uri:
+                    continue
+                track_id = _extract_spotify_id(uri, "track")
+                if not track_id and uri.startswith("spotify:track:"):
+                    track_id = uri.split("spotify:track:")[-1]
+                if track_id:
+                    track_urls.append(_make_spotify_track_url(track_id))
+    except Exception:
+        # Best-effort; if pagination fails, continue with what we have.
+        pass
+
     return PlaylistDetails(
-        playlist_url=getattr(p, "playlist_url", spotify_playlist_url) or spotify_playlist_url,
-        playlist_id=getattr(p, "playlist_id", "") or "",
-        title=getattr(p, "title", "") or "",
-        playlist_image_url=getattr(p, "playlist_image_url", "") or "",
-        track_urls=list(getattr(p, "track_urls", []) or []),
+        playlist_url=str(getattr(playlist, "playlist_link", spotify_playlist_url) or spotify_playlist_url),
+        playlist_id=str(playlist_id or ""),
+        title=title,
+        playlist_image_url=image_url,
+        track_urls=track_urls,
     )
+
+
 
 
 def get_likes_details(
@@ -45,33 +185,11 @@ def get_likes_details(
     page_load_timeout: int = 30,
     scroll_pause: float = 2.0,
 ) -> PlaylistDetails:
-    """
-    Adapter around `syncify.get_likes` that exposes Spotify Liked Songs as a pseudo-playlist.
-
-    Returns a PlaylistDetails object with a stable playlist_id of LIKES_PLAYLIST_ID and
-    track_urls populated from the likes scraper.
-    """
-    try:
-        from syncify import get_likes  # imported lazily
-    except Exception as exc:  # pragma: no cover - defensive import guard
-        raise RuntimeError(f"Failed to import syncify.get_likes: {exc}") from exc
-
-    try:
-        likes = get_likes(
-            login_timeout=login_timeout,
-            page_load_timeout=page_load_timeout,
-            scroll_pause=scroll_pause,
-        )
-    except Exception as exc:
-        # Surface a concise, user-facing error; underlying exception can be inspected in logs.
-        raise RuntimeError(f"Failed to load Spotify liked songs: {exc}") from exc
-
-    track_urls = list(getattr(likes, "track_urls", []) or [])
-
+    """Fetch Spotify playlist metadata using spotapi."""
     return PlaylistDetails(
-        playlist_url="likes://user-liked-songs",
-        playlist_id=LIKES_PLAYLIST_ID,
-        title="Liked Songs",
+        playlist_url="",
+        playlist_id="",
+        title="",
         playlist_image_url="",
-        track_urls=track_urls,
+        track_urls=[],
     )

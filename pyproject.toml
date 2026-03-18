@@ -8,13 +8,13 @@ requires = [
   "typer>=0.12",
   "sqlmodel>=0.0.24",
   "pydantic>=2.0",
-  "syncify-py<=2.3.0",
   "yt-dlp>=2025.1.0",
   "mutagen>=1.47.0",
   "ffmpeg-python>=0.2.0",
-  "selenium>=4.15.0",
-  "webdriver-manager>=4.0.0",
   "rich>=13.0.0",
+  "spotapi",
+  "pymongo",
+  "redis",
 ]
 build-backend = "hatchling.build"
 
@@ -41,13 +41,14 @@ dependencies = [
   "typer>=0.12",
   "sqlmodel>=0.0.24",
   "pydantic>=2.0",
-  "syncify-py<=2.3.0",
+  "spotipy>=2.26.0",
   "yt-dlp>=2025.1.0",
   "mutagen>=1.47.0",
   "ffmpeg-python>=0.2.0",
-  "selenium>=4.15.0",
-  "webdriver-manager>=4.0.0",
   "rich>=13.0.0",
+  "spotapi",
+  "pymongo",
+  "redis",
 ]
 
 [project.scripts]

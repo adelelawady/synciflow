@@ -3,10 +3,16 @@ YouTube resolution + download helpers.
 
 This module is copied/refactored from the previous test-only location
 `tests/synciflow/core/youtube.py` so it can be used by the real library code.
+
+Selenium / webdriver dependency has been removed entirely.
+YouTube search is now performed via YouTube's internal InnerTube API
+(the same JSON endpoint the web app uses), which requires no API key,
+no browser, and is significantly faster.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -14,20 +20,47 @@ import time
 from pathlib import Path
 
 import ffmpeg
+import requests
 import yt_dlp
 from mutagen.id3 import ID3
 from mutagen.mp3 import MP3
-from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 LOG = logging.getLogger("synciflow.youtube")
 
+# ---------------------------------------------------------------------------
+# InnerTube constants – these are the same values the YouTube web client sends.
+# They are publicly visible in every browser request to youtube.com and do not
+# constitute private credentials.
+# ---------------------------------------------------------------------------
+_INNERTUBE_API_KEY = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
+_INNERTUBE_URL = (
+    "https://www.youtube.com/youtubei/v1/search"
+    f"?key={_INNERTUBE_API_KEY}&prettyPrint=false"
+)
+_INNERTUBE_CONTEXT = {
+    "client": {
+        "clientName": "WEB",
+        "clientVersion": "2.20240101.00.00",
+        "hl": "en",
+        "gl": "US",
+    }
+}
+_REQUEST_HEADERS = {
+    "Content-Type": "application/json",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Origin": "https://www.youtube.com",
+    "Referer": "https://www.youtube.com/",
+}
+
+
+# ---------------------------------------------------------------------------
+# URL / ID helpers
+# ---------------------------------------------------------------------------
 
 def is_valid_youtube_url(url: str) -> bool:
     pattern = re.compile(r"(https?://)?(www\.)?(youtube\.com|youtu\.be)/")
@@ -46,71 +79,93 @@ def extract_youtube_video_id(url: str) -> str | None:
     return None
 
 
-def _build_chrome_driver() -> webdriver.Chrome:
-    options = ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--incognito")
-    options.add_argument("--remote-allow-origins=*")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-infobars")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_argument(
-        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    )
+# ---------------------------------------------------------------------------
+# YouTube search via InnerTube (no Selenium, no API key)
+# ---------------------------------------------------------------------------
 
+def _innertube_search(query: str, max_retries: int = 3) -> list[dict]:
+    """
+    Call YouTube's internal InnerTube search endpoint and return a flat list
+    of video renderer dicts from the first page of results.
+
+    Each dict contains at minimum ``videoId`` and ``title.runs[].text``.
+    Returns an empty list on any error.
+    """
+    payload = {
+        "context": _INNERTUBE_CONTEXT,
+        "query": query,
+        "params": "EgIQAQ%3D%3D",  # filter: videos only
+    }
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = requests.post(
+                _INNERTUBE_URL,
+                headers=_REQUEST_HEADERS,
+                json=payload,
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            break
+        except Exception as exc:
+            LOG.debug("InnerTube search attempt %d/%d failed: %s", attempt, max_retries, exc)
+            if attempt == max_retries:
+                return []
+            time.sleep(1.5 * attempt)
+
+    # Walk the deeply-nested response and collect videoRenderer objects.
+    videos: list[dict] = []
     try:
-        return webdriver.Chrome(options=options)
-    except WebDriverException:
-        service = ChromeService(ChromeDriverManager().install())
-        return webdriver.Chrome(service=service, options=options)
+        sections = (
+            data.get("contents", {})
+            .get("twoColumnSearchResultsRenderer", {})
+            .get("primaryContents", {})
+            .get("sectionListRenderer", {})
+            .get("contents", [])
+        )
+        for section in sections:
+            items = (
+                section.get("itemSectionRenderer", {})
+                .get("contents", [])
+            )
+            for item in items:
+                vr = item.get("videoRenderer")
+                if vr and vr.get("videoId"):
+                    videos.append(vr)
+    except Exception as exc:
+        LOG.debug("Failed to parse InnerTube response: %s", exc)
+
+    return videos
 
 
 def populate_youtube_details_for_track(track_title: str, artist_title: str) -> str:
     """
-    Perform a YouTube search and return the first video ID.
+    Search YouTube for *track_title* by *artist_title* and return the first
+    matching video ID.
+
+    Uses YouTube's InnerTube API directly — no browser, no Selenium, no API key
+    required.  Returns an empty string if no result is found or on any error.
     """
     if not track_title or not artist_title:
         return ""
 
-    video_id: str = ""
-    driver = None
+    query = f"{track_title} {artist_title}"
+    LOG.debug("Searching YouTube (InnerTube) for: %r", query)
 
-    try:
-        driver = _build_chrome_driver()
-        wait = WebDriverWait(driver, 30)
+    videos = _innertube_search(query)
+    if not videos:
+        LOG.debug("No YouTube results found for query: %r", query)
+        return ""
 
-        driver.get("https://www.youtube.com/")
-        search_box = wait.until(EC.presence_of_element_located((By.NAME, "search_query")))
-        search_box.send_keys(f"{track_title} {artist_title}")
-        search_box.submit()
-        time.sleep(3)
-
-        results = driver.find_elements(By.CSS_SELECTOR, "ytd-video-renderer")
-        first_result = None
-        for result in results:
-            if not result.find_elements(By.CSS_SELECTOR, "ytd-ad-slot-renderer"):
-                first_result = result
-                break
-
-        if first_result:
-            title_element = first_result.find_element(By.ID, "video-title")
-            video_url_raw = title_element.get_attribute("href") or ""
-            LOG.debug("Found YouTube URL: %s", video_url_raw)
-            video_id = extract_youtube_video_id(video_url_raw) or ""
-
-    except Exception as exc:
-        LOG.debug("Error populating YouTube details: %s", exc)
-    finally:
-        if driver is not None:
-            driver.quit()
-
+    video_id: str = videos[0].get("videoId", "")
+    LOG.debug("First YouTube result: videoId=%r", video_id)
     return video_id
 
+
+# ---------------------------------------------------------------------------
+# MP3 metadata helpers
+# ---------------------------------------------------------------------------
 
 def extract_track_metadata(mp3_path: str, youtube_url: str = "") -> dict:
     metadata = {
@@ -142,6 +197,10 @@ def extract_track_metadata(mp3_path: str, youtube_url: str = "") -> dict:
 
     return metadata
 
+
+# ---------------------------------------------------------------------------
+# Download helper
+# ---------------------------------------------------------------------------
 
 def download_youtube_video_as_mp3(
     video_or_id: str,
@@ -198,7 +257,9 @@ def download_youtube_video_as_mp3(
     mp3_path = os.path.join(output_dir, f"{video_id}.mp3")
 
     if not os.path.exists(downloaded_path):
-        raise FileNotFoundError(f"Expected audio file not found after download: {downloaded_path}")
+        raise FileNotFoundError(
+            f"Expected audio file not found after download: {downloaded_path}"
+        )
 
     LOG.debug("Converting %s to MP3: %s", downloaded_path, mp3_path)
     (
@@ -218,4 +279,3 @@ def download_youtube_video_as_mp3(
 
     LOG.debug("Download and conversion complete: %s", mp3_path)
     return mp3_path
-

@@ -20,7 +20,6 @@ hiddenimports = (
     + [
         "synciflow.cli.main",
         "synciflow.cli.smart",
-        "selenium.webdriver.chrome.webdriver",
     ]
 )
 
