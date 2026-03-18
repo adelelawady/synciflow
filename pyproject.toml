@@ -23,7 +23,7 @@ name = "synciflow"
 version = "3.0.0"
 description = "Python package for the synciflow project."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
   { name = "AdelElawady", email = "adel50ali50@gmail.com" },
