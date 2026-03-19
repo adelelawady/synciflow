@@ -62,6 +62,24 @@ Synciflow is ideal for users who want a **self-hosted music library that mirrors
 [![Installer Download](https://img.shields.io/badge/Download-Installer-blue?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v4.0/Synciflow.Setup.exe)
 ## 🖼 Screenshots
 
+
+
+
+### Mobile UI (Mobile)
+
+<table>
+<tr>
+<td><img src="docs/images/mobile%20view%201.png" width="280" alt="Your library" title="Your library" /></td>
+<td><img src="docs/images/mobile%20view%202.png" width="280" alt="Likes list" title="Likes list" /></td>
+<td><img src="docs/images/mobile%20view%203.png" width="280" alt="View playlist" title="View playlist" /></td>
+</tr>
+<tr>
+<td align="center"><em>Mobile View</em></td>
+<td align="center"><em>Mobile View</em></td>
+<td align="center"><em>Mobile View</em></td>
+</tr>
+</table>
+
 ### Web UI (Windows)
 
 <table>
