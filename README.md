@@ -20,8 +20,14 @@
 [![Spotify](https://img.shields.io/badge/Spotify-integration-1DB954?style=flat-square&logo=spotify)](https://spotify.com)
 [![PyPI Downloads](https://img.shields.io/pypi/dd/synciflow?style=flat-square)](https://pypi.org/project/synciflow/)
 [![PyPI Version](https://img.shields.io/pypi/v/synciflow?style=flat-square)](https://pypi.org/project/synciflow/)
-[![Standalone Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v2.0/Synciflow.Server.Standalone.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
-[![Installer Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v2.0/Synciflow.Setup.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
+<a href="https://pepy.tech/project/synciflow">
+    <img src="https://static.pepy.tech/badge/synciflow" alt="Downloads">
+  </a>
+
+
+
+[![Standalone Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v4.0/Synciflow.Server.Standalone.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
+[![Installer Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v4.0/Synciflow.Setup.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
 
 ---
 
@@ -52,8 +58,8 @@ With Synciflow you can:
 
 Synciflow is ideal for users who want a **self-hosted music library that mirrors Spotify while keeping full control of their files offline.**
 
-[![Standalone Download](https://img.shields.io/badge/Download-Standalone-green?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v2.0/Synciflow.Server.Standalone.exe)
-[![Installer Download](https://img.shields.io/badge/Download-Installer-blue?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v2.0/Synciflow.Setup.exe)
+[![Standalone Download](https://img.shields.io/badge/Download-Standalone-green?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v4.0/Synciflow.Server.Standalone.exe)
+[![Installer Download](https://img.shields.io/badge/Download-Installer-blue?style=for-the-badge)](https://github.com/adelelawady/synciflow/releases/download/v4.0/Synciflow.Setup.exe)
 ## 🖼 Screenshots
 
 ### Web UI (Windows)
