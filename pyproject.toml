@@ -15,12 +15,13 @@ requires = [
   "spotapi",
   "pymongo",
   "redis",
+  "websockets>=12.0",
 ]
 build-backend = "hatchling.build"
 
 [project]
 name = "synciflow"
-version = "3.0.0"
+version = "4.0.0"
 description = "Python package for the synciflow project."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -49,6 +50,7 @@ dependencies = [
   "spotapi",
   "pymongo",
   "redis",
+  "websockets>=12.0",
 ]
 
 [project.scripts]

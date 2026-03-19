@@ -148,7 +148,7 @@ def get_playlist_details(spotify_playlist_url: str) -> PlaylistDetails:
 
     try:
         playlist = PublicPlaylist(spotify_playlist_url)
-        info = playlist.get_playlist_info(limit=100)
+        info = playlist.get_playlist_info(limit=1000)
     except Exception as exc:
         raise RuntimeError(f"Failed to load Spotify playlist details: {exc}") from exc
 
