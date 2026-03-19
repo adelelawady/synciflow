@@ -30,6 +30,11 @@
   🌐 LIVE DEMO - <small>[limited tracks download]</small>
 </a>
 
+<a href="https://adelelawady.github.io/synciflow/" target="_blank" rel="noopener noreferrer" 
+   style="display:inline-block;padding:10px 20px;font-weight:bold;color:white;background-color:#1DB954;border-radius:6px;text-decoration:none;">
+  🌐 DOCS 
+</a>
+
 Synciflow is an **offline-first music sync and download platform** that lets you **save and manage Spotify content locally** through multiple interfaces:
 
 • **Web** – browser-based interface for managing and syncing music  
