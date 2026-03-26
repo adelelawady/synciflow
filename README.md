@@ -26,8 +26,8 @@
 
 
 
-[![Standalone Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v4.0/Synciflow.Server.Standalone.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
-[![Installer Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v4.0/Synciflow.Setup.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v2.0)
+[![Standalone Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v4.0/Synciflow.Server.Standalone.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v4.0)
+[![Installer Downloads](https://img.shields.io/github/downloads/adelelawady/synciflow/v4.0/Synciflow.Setup.exe?style=flat-square)](https://github.com/adelelawady/synciflow/releases/tag/v4.0)
 
 ---
 
